@@ -1,0 +1,9 @@
+{
+  "name": "My Website",
+  "description": "A website built with Nitro and YDNATL",
+  "author": "Your Name",
+  "social": {
+    "github": "https://github.com/yourusername",
+    "twitter": "https://twitter.com/yourusername"
+  }
+}

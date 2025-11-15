@@ -1,0 +1,68 @@
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "nitro-cli"
+version = "0.1.0"
+description = "A CLI tool for building static websites with YDNATL"
+authors = [{name = "Nitro Team", email = "team@nitro.sh"}]
+license = {text = "MIT"}
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Build Tools",
+    "Topic :: Internet :: WWW/HTTP :: Site Management",
+]
+dependencies = [
+    "click>=8.0.0",
+    "ydnatl>=1.0.9",
+    "watchdog>=2.1.0",
+    "rich>=10.0.0",
+    "pyyaml>=6.0",
+    "aiohttp>=3.8.0",
+    "aiofiles>=0.8.0",
+    "csscompressor>=0.9.5",
+    "htmlmin>=0.1.12",
+    "pillow>=9.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "html5lib>=1.1",
+    "beautifulsoup4>=4.11.0",
+    "black>=22.0.0",
+    "flake8>=4.0.0",
+]
+markdown = [
+    "python-frontmatter>=1.0.0",
+    "markdown>=3.3.0",
+]
+
+[project.scripts]
+nitro = "nitro.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/nitro-sh/nitro-cli"
+Documentation = "https://nitro-cli.readthedocs.io"
+Repository = "https://github.com/nitro-sh/nitro-cli"
+Issues = "https://github.com/nitro-sh/nitro-cli/issues"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+nitro = ["templates/**/*"]
