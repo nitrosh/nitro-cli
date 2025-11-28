@@ -10,6 +10,7 @@ from rich.table import Table
 from ..core.bundler import Bundler
 from ..core.config import load_config
 from ..core.generator import Generator
+from ..plugins import PluginLoader
 from ..utils import info, success, error
 
 
@@ -62,6 +63,14 @@ def build(minify, optimize, output, clean):
             config.renderer["minify_html"] = True
             generator.renderer.minify_html = True
 
+        # Trigger pre-build hook
+        generator.plugin_loader.trigger("nitro.pre_build", {
+            "config": config,
+            "build_dir": str(generator.build_dir),
+            "minify": minify,
+            "optimize": optimize,
+        })
+
         # Generate site
         success_result = generator.generate(verbose=False)
 
@@ -101,6 +110,15 @@ def build(minify, optimize, output, clean):
 
         # Calculate build statistics
         stats = bundler.calculate_build_size()
+
+        # Trigger post-build hook
+        generator.plugin_loader.trigger("nitro.post_build", {
+            "config": config,
+            "build_dir": str(generator.build_dir),
+            "stats": stats,
+            "minify": minify,
+            "optimize": optimize,
+        })
 
         # Display build summary
         info("\n")

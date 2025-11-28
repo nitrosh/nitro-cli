@@ -1,4 +1,4 @@
-"""YDNATL renderer for generating HTML from pages."""
+"""Renderer for generating HTML from nitro-ui pages."""
 
 from typing import Any, Dict, Optional
 from pathlib import Path
@@ -10,7 +10,7 @@ from ..utils import error, warning
 
 
 class Renderer:
-    """Handles rendering of YDNATL pages to HTML."""
+    """Handles rendering of nitro-ui pages to HTML."""
 
     def __init__(self, config: Any):
         """Initialize renderer.
@@ -62,7 +62,7 @@ class Renderer:
             if isinstance(page, Page):
                 html = self._render_page_object(page)
             else:
-                # Assume it's a YDNATL element
+                # Assume it's a nitro-ui element
                 html = self._render_element(page)
 
             # Apply post-processing
@@ -87,7 +87,7 @@ class Renderer:
         Returns:
             HTML string
         """
-        # Check if content has render method (YDNATL element)
+        # Check if content has render method (nitro-ui element)
         if hasattr(page.content, "render"):
             return page.content.render()
 
@@ -95,10 +95,10 @@ class Renderer:
         return str(page.content)
 
     def _render_element(self, element: Any) -> str:
-        """Render a YDNATL element to HTML.
+        """Render a nitro-ui element to HTML.
 
         Args:
-            element: YDNATL element
+            element: nitro-ui element
 
         Returns:
             HTML string

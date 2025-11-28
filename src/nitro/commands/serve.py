@@ -55,8 +55,9 @@ async def serve_async(port: int, host: str, enable_reload: bool):
     # Initialize generator
     generator = Generator()
 
-    # Check if build directory exists
-    if not generator.build_dir.exists() or not list(generator.build_dir.glob("*.html")):
+    # Check if build directory exists and contains any HTML file (including nested)
+    # Use rglob to account for pages generated in subdirectories
+    if not generator.build_dir.exists() or not list(generator.build_dir.rglob("*.html")):
         info("Build directory is empty or doesn't exist. Generating site...")
         success_result = generator.generate(verbose=False)
         if not success_result:
@@ -77,6 +78,9 @@ async def serve_async(port: int, host: str, enable_reload: bool):
 
         async def on_file_change(path: Path) -> None:
             """Handle file changes."""
+            # We reassign `generator` below when config changes; declare nonlocal to
+            # avoid UnboundLocalError due to Python's scope rules.
+            nonlocal generator
             info(f"\nFile changed: {path.name}")
 
             # Determine what changed

@@ -206,3 +206,11 @@ marimo/_static/
 marimo/_lsp/
 __marimo__/
 .idea/
+
+# Nitro build output
+.nitro/
+
+# Task file (development notes)
+task.md
+CLAUDE.md
+.idea/

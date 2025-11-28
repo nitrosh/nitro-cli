@@ -1,74 +1,54 @@
-"""Base plugin class for Nitro."""
+"""Base plugin class for Nitro using nitro-dispatch."""
 
 from typing import Any, Dict, Optional
 
+from nitro_dispatch import PluginBase, hook
 
-class NitroPlugin:
-    """Base class for all Nitro plugins."""
+
+class NitroPlugin(PluginBase):
+    """Base class for all Nitro plugins.
+
+    This class extends nitro-dispatch's PluginBase to provide
+    Nitro-specific lifecycle hooks for the static site generator.
+
+    Available hooks:
+        - nitro.init: Called when plugin is loaded
+        - nitro.pre_generate: Called before HTML generation
+        - nitro.post_generate: Called after HTML generation (can modify output)
+        - nitro.pre_build: Called before production build
+        - nitro.post_build: Called after production build
+        - nitro.process_data: Called to process data files
+        - nitro.add_commands: Called to add CLI commands
+
+    Example:
+        from nitro.plugins import NitroPlugin, hook
+
+        class MyPlugin(NitroPlugin):
+            name = "my-plugin"
+            version = "1.0.0"
+
+            @hook('nitro.post_generate', priority=50)
+            def add_analytics(self, data):
+                # Modify HTML output
+                html = data.get('output', '')
+                data['output'] = html.replace('</body>', '<script>...</script></body>')
+                return data
+    """
 
     name: str = "base-plugin"
     version: str = "0.1.0"
+    description: str = "Nitro plugin"
+    author: str = ""
+    dependencies: list = []
 
-    def on_init(self, config: Any) -> None:
-        """Called when plugin is loaded.
-
-        Args:
-            config: Nitro configuration object
-        """
+    def on_load(self) -> None:
+        """Called when plugin is loaded by the plugin manager."""
         pass
 
-    def on_pre_generate(self, context: Dict[str, Any]) -> None:
-        """Called before HTML generation.
-
-        Args:
-            context: Generation context
-        """
+    def on_unload(self) -> None:
+        """Called when plugin is unloaded."""
         pass
 
-    def on_post_generate(self, context: Dict[str, Any], output: str) -> str:
-        """Called after HTML generation, can modify output.
 
-        Args:
-            context: Generation context
-            output: Generated HTML output
-
-        Returns:
-            Modified HTML output
-        """
-        return output
-
-    def on_pre_build(self, context: Dict[str, Any]) -> None:
-        """Called before production build.
-
-        Args:
-            context: Build context
-        """
-        pass
-
-    def on_post_build(self, context: Dict[str, Any]) -> None:
-        """Called after production build.
-
-        Args:
-            context: Build context
-        """
-        pass
-
-    def add_commands(self, cli: Any) -> None:
-        """Add custom CLI commands.
-
-        Args:
-            cli: Click CLI group
-        """
-        pass
-
-    def process_data(self, data_file: str, content: Any) -> Any:
-        """Process data files (e.g., markdown -> JSON).
-
-        Args:
-            data_file: Path to data file
-            content: File content
-
-        Returns:
-            Processed content
-        """
-        return content
+# Re-export hook decorator for convenience
+__all__ = ["NitroPlugin", "hook"]

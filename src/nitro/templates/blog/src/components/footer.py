@@ -1,6 +1,6 @@
-"""Footer component."""
+"""Footer component using nitro-ui."""
 
-from ydnatl import Footer as HTMLFooter, Paragraph, Link
+from nitro_ui import Footer as UIFooter, Paragraph, Anchor
 
 
 def Footer():
@@ -9,14 +9,14 @@ def Footer():
     Returns:
         Footer element
     """
-    footer_elem = HTMLFooter(
+    footer_elem = UIFooter(
         Paragraph(
             "Built with ",
-            Link(
+            Anchor(
                 "Nitro", href="https://github.com/nitro-sh/nitro-cli", target="_blank"
             ),
             " and ",
-            Link("YDNATL", href="https://github.com/sn/ydnatl", target="_blank"),
+            Anchor("nitro-ui", href="https://github.com/nitrosh/nitro-ui", target="_blank"),
         )
     )
     footer_elem.add_attribute("class", "footer")

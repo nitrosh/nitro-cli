@@ -6,7 +6,9 @@ build-backend = "setuptools.build_meta"
 name = "nitro-cli"
 version = "0.1.0"
 description = "A CLI tool for building static websites with YDNATL"
-authors = [{name = "Nitro Team", email = "team@nitro.sh"}]
+authors = [
+    {name = "Sean Nieuwoudt", email = "team@nitro.sh"}
+]
 license = {text = "MIT"}
 readme = "README.md"
 requires-python = ">=3.8"
@@ -20,12 +22,13 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Topic :: Software Development :: Build Tools",
     "Topic :: Internet :: WWW/HTTP :: Site Management",
 ]
 dependencies = [
     "click>=8.0.0",
-    "ydnatl>=1.0.9",
     "watchdog>=2.1.0",
     "rich>=10.0.0",
     "pyyaml>=6.0",
@@ -34,6 +37,9 @@ dependencies = [
     "csscompressor>=0.9.5",
     "htmlmin>=0.1.12",
     "pillow>=9.0.0",
+    "nitro-ui>=1.0.0",
+    "nitro-datastore>=1.0.0",
+    "nitro-dispatch>=1.0.0",
 ]
 
 [project.optional-dependencies]

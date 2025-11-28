@@ -1,7 +1,7 @@
-"""Home page."""
+"""Home page using nitro-ui and nitro-datastore."""
 
-from ydnatl import HTML, Head, Body, Title, Meta, Link, Div, H1, H2, Paragraph
-from nitro import Page
+from nitro_ui import HTML, Head, Body, Title, Meta, Link, Div, H1, H2, Paragraph, Ul, Li
+from nitro import Page, load_data
 import sys
 from pathlib import Path
 
@@ -18,22 +18,33 @@ def render():
     Returns:
         Page object with HTML content
     """
+    # Load site data using nitro-datastore
+    data = load_data("src/data/site.json")
+
+    # Access data using dot notation or path-based access
+    site_name = data.site.name
+    site_description = data.site.description
+
+    # Build feature list from data
+    feature_items = []
+    for feature in data.features:
+        item = Li(f"✓ {feature['name']}: {feature['description']}")
+        feature_items.append(item)
+
+    features_list = Ul(*feature_items)
+    features_list.add_attribute("class", "feature-list")
+
     # Create content div
     content_div = Div(
-        H1("Welcome to Nitro!"),
-        Paragraph(
-            "This is a starter template for building static websites with Nitro CLI and YDNATL."
-        ),
+        H1(f"Welcome to {site_name}!"),
+        Paragraph(site_description),
         H2("Getting Started"),
         Paragraph(
             "Edit the files in src/pages/ to create your site. "
             "Components are in src/components/ and can be reused across pages."
         ),
         H2("Features"),
-        Paragraph("✓ Python-based HTML generation with YDNATL"),
-        Paragraph("✓ Component-based architecture"),
-        Paragraph("✓ Hot reload development server"),
-        Paragraph("✓ Production-ready builds"),
+        features_list,
     )
     content_div.add_attribute("class", "content")
 
@@ -46,17 +57,17 @@ def render():
         Head(
             Meta(charset="UTF-8"),
             Meta(name="viewport", content="width=device-width, initial-scale=1.0"),
-            Title("Home - My Website"),
+            Title(f"Home - {site_name}"),
             Link(rel="stylesheet", href="/assets/styles/main.css"),
         ),
-        Body(Header("My Website"), container, Footer()),
+        Body(Header(site_name), container, Footer()),
     )
 
     return Page(
-        title="Home - My Website",
+        title=f"Home - {site_name}",
         meta={
-            "description": "Welcome to my website built with Nitro and YDNATL",
-            "keywords": "nitro, static site, ydnatl",
+            "description": site_description,
+            "keywords": "nitro, static site, nitro-ui",
         },
         content=page,
     )

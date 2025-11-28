@@ -1,6 +1,6 @@
-"""Home page."""
+"""Home page using nitro-ui."""
 
-from ydnatl import HTML, Head, Body, Title, Meta, Link, Div, H1, H2, Paragraph
+from nitro_ui import HTML, Head, Body, Title, Meta, Link, Div, H1, H2, Paragraph
 from nitro import Page
 import sys
 from pathlib import Path
@@ -20,20 +20,22 @@ def render():
     """
     # Create content div
     content_div = Div(
-        H1("Welcome to Nitro!"),
+        H1("Welcome to My Portfolio!"),
         Paragraph(
-            "This is a starter template for building static websites with Nitro CLI and YDNATL."
+            "This is a portfolio template for showcasing your work with Nitro CLI and nitro-ui."
         ),
         H2("Getting Started"),
         Paragraph(
-            "Edit the files in src/pages/ to create your site. "
+            "Edit the files in src/pages/ to add your projects. "
             "Components are in src/components/ and can be reused across pages."
         ),
         H2("Features"),
-        Paragraph("✓ Python-based HTML generation with YDNATL"),
+        Paragraph("✓ Python-based HTML generation with nitro-ui"),
         Paragraph("✓ Component-based architecture"),
         Paragraph("✓ Hot reload development server"),
         Paragraph("✓ Production-ready builds"),
+        Paragraph("✓ Data loading with nitro-datastore"),
+        Paragraph("✓ Plugin system with nitro-dispatch"),
     )
     content_div.add_attribute("class", "content")
 
@@ -46,17 +48,17 @@ def render():
         Head(
             Meta(charset="UTF-8"),
             Meta(name="viewport", content="width=device-width, initial-scale=1.0"),
-            Title("Home - My Website"),
+            Title("Home - My Portfolio"),
             Link(rel="stylesheet", href="/assets/styles/main.css"),
         ),
-        Body(Header("My Website"), container, Footer()),
+        Body(Header("My Portfolio"), container, Footer()),
     )
 
     return Page(
-        title="Home - My Website",
+        title="Home - My Portfolio",
         meta={
-            "description": "Welcome to my website built with Nitro and YDNATL",
-            "keywords": "nitro, static site, ydnatl",
+            "description": "Welcome to my portfolio built with Nitro and nitro-ui",
+            "keywords": "nitro, portfolio, nitro-ui",
         },
         content=page,
     )

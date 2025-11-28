@@ -6,7 +6,7 @@ from typing import Dict, Any, Optional, Union
 
 import yaml
 
-from .datastore import NitroDataStore
+from nitro_datastore import NitroDataStore
 
 
 class Page:

@@ -1,2 +1,0 @@
-pyyaml
-ydnatl==1.0.7

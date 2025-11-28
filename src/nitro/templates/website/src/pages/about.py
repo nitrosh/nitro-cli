@@ -1,6 +1,6 @@
-"""About page."""
+"""About page using nitro-ui."""
 
-from ydnatl import HTML, Head, Body, Title, Meta, Link, Div, H1, Paragraph
+from nitro_ui import HTML, Head, Body, Title, Meta, Link, Div, H1, Paragraph
 from nitro import Page
 import sys
 from pathlib import Path

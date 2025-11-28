@@ -14,13 +14,11 @@ console = Console()
 def main(ctx):
     """
     Nitro - A static website framework for the next generation.
-
     Build beautiful static websites using Python and YDNATL.
     """
     ctx.ensure_object(dict)
 
 
-# Register commands
 main.add_command(scaffold)
 main.add_command(generate)
 main.add_command(serve)

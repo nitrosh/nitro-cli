@@ -7,6 +7,7 @@ import shutil
 from ..core.config import Config, load_config
 from ..core.renderer import Renderer
 from ..core.project import get_project_root
+from ..plugins import PluginLoader
 from ..utils import success, error, info, logger
 from rich.progress import (
     Progress,
@@ -31,6 +32,7 @@ class Generator:
         self.renderer = Renderer(self.config)
         self.source_dir = self.project_root / self.config.source_dir
         self.build_dir = self.project_root / self.config.build_dir
+        self.plugin_loader = self._load_plugins()
 
     def _load_config(self) -> Config:
         """Load project configuration.
@@ -43,6 +45,23 @@ class Generator:
             return load_config(config_path)
         return Config()
 
+    def _load_plugins(self) -> PluginLoader:
+        """Load plugins from configuration.
+
+        Returns:
+            PluginLoader instance with loaded plugins
+        """
+        loader = PluginLoader(config={"project_root": str(self.project_root)})
+
+        # Load plugins from config if specified
+        if hasattr(self.config, "plugins") and self.config.plugins:
+            loader.load_plugins(self.config.plugins, self.project_root)
+
+        # Trigger init hook
+        loader.trigger("nitro.init", {"config": self.config})
+
+        return loader
+
     def generate(self, verbose: bool = False) -> bool:
         """Generate the static site.
 
@@ -54,6 +73,13 @@ class Generator:
         """
         info(f"Generating site from {self.source_dir}")
         info(f"Output directory: {self.build_dir}")
+
+        # Trigger pre-generate hook
+        self.plugin_loader.trigger("nitro.pre_generate", {
+            "config": self.config,
+            "source_dir": str(self.source_dir),
+            "build_dir": str(self.build_dir),
+        })
 
         # Ensure build directory exists
         self.build_dir.mkdir(parents=True, exist_ok=True)
@@ -86,6 +112,17 @@ class Generator:
                 html = self.renderer.render_page(page_path, self.project_root)
 
                 if html:
+                    # Trigger post-generate hook to allow HTML modification
+                    hook_result = self.plugin_loader.trigger("nitro.post_generate", {
+                        "page_path": str(page_path),
+                        "output": html,
+                        "config": self.config,
+                    })
+
+                    # Use modified output if returned
+                    if hook_result and isinstance(hook_result, dict) and "output" in hook_result:
+                        html = hook_result["output"]
+
                     output_path = self.renderer.get_output_path(
                         page_path, self.source_dir, self.build_dir
                     )

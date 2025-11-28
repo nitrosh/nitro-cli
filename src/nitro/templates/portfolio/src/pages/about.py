@@ -1,6 +1,6 @@
-"""About page."""
+"""About page using nitro-ui."""
 
-from ydnatl import HTML, Head, Body, Title, Meta, Link, Div, H1, Paragraph
+from nitro_ui import HTML, Head, Body, Title, Meta, Link, Div, H1, Paragraph
 from nitro import Page
 import sys
 from pathlib import Path
@@ -20,14 +20,14 @@ def render():
     """
     # Create content div
     content_div = Div(
-        H1("About"),
+        H1("About Me"),
         Paragraph(
-            "This is the about page. Customize it to tell visitors about your site!"
+            "This is the about page. Customize it to tell visitors about yourself and your work!"
         ),
         Paragraph(
             "You can add more pages by creating new Python files in src/pages/. "
-            "The file path determines the URL - for example, src/pages/blog/post.py "
-            "becomes /blog/post.html"
+            "The file path determines the URL - for example, src/pages/projects/my-project.py "
+            "becomes /projects/my-project.html"
         ),
     )
     content_div.add_attribute("class", "content")
@@ -41,14 +41,14 @@ def render():
         Head(
             Meta(charset="UTF-8"),
             Meta(name="viewport", content="width=device-width, initial-scale=1.0"),
-            Title("About - My Website"),
+            Title("About - My Portfolio"),
             Link(rel="stylesheet", href="/assets/styles/main.css"),
         ),
-        Body(Header("My Website"), container, Footer()),
+        Body(Header("My Portfolio"), container, Footer()),
     )
 
     return Page(
-        title="About - My Website",
-        meta={"description": "About my website", "keywords": "about, nitro, website"},
+        title="About - My Portfolio",
+        meta={"description": "About me and my work", "keywords": "about, nitro, portfolio"},
         content=page,
     )

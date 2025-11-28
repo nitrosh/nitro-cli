@@ -1,9 +1,17 @@
 {
-  "name": "My Website",
-  "description": "A website built with Nitro and YDNATL",
-  "author": "Your Name",
+  "site": {
+    "name": "My Portfolio",
+    "description": "A portfolio built with Nitro and nitro-ui",
+    "author": "Your Name"
+  },
   "social": {
     "github": "https://github.com/yourusername",
-    "twitter": "https://twitter.com/yourusername"
-  }
+    "twitter": "https://twitter.com/yourusername",
+    "linkedin": "https://linkedin.com/in/yourusername"
+  },
+  "features": [
+    {"name": "nitro-ui", "description": "Python-based HTML generation"},
+    {"name": "nitro-datastore", "description": "Flexible data loading"},
+    {"name": "nitro-dispatch", "description": "Plugin system with hooks"}
+  ]
 }
