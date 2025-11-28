@@ -100,6 +100,11 @@ class NitroFileHandler(FileSystemEventHandler):
             if pattern in path_str:
                 return True
 
+        # Ignore editor temp/backup files
+        name = path.name
+        if name.endswith("~") or name.startswith(".#") or name.endswith(".swp"):
+            return True
+
         return False
 
 

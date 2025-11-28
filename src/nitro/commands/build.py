@@ -4,14 +4,12 @@ import sys
 from pathlib import Path
 
 import click
-from rich.panel import Panel
-from rich.table import Table
 
 from ..core.bundler import Bundler
 from ..core.config import load_config
 from ..core.generator import Generator
 from ..plugins import PluginLoader
-from ..utils import info, success, error
+from ..utils import logger, LogLevel, info, success, error, warning, verbose, configure
 
 
 @click.command()
@@ -35,14 +33,49 @@ from ..utils import info, success, error
     is_flag=True,
     help="Clean build directory before building"
 )
-def build(minify, optimize, output, clean):
+@click.option(
+    "--verbose", "-v",
+    "verbose_flag",
+    is_flag=True,
+    help="Enable verbose output"
+)
+@click.option(
+    "--quiet", "-q",
+    is_flag=True,
+    help="Only show errors and final summary"
+)
+@click.option(
+    "--debug",
+    is_flag=True,
+    help="Enable debug mode with full tracebacks"
+)
+@click.option(
+    "--log-file",
+    type=click.Path(),
+    help="Write logs to a file"
+)
+def build(minify, optimize, output, clean, verbose_flag, quiet, debug, log_file):
     """
     Build the site for production.
 
     Generates an optimized production build with minification,
     image optimization, sitemap generation, and more.
     """
+    # Configure logging
+    if debug:
+        configure(level=LogLevel.DEBUG, log_file=log_file)
+    elif verbose_flag:
+        configure(level=LogLevel.VERBOSE, log_file=log_file)
+    elif quiet:
+        configure(level=LogLevel.QUIET, log_file=log_file)
+    elif log_file:
+        configure(log_file=log_file)
+
     try:
+        # Show banner
+        logger.banner("Production Build")
+        logger.start_timer()
+
         generator = Generator()
 
         # Override build directory if specified
@@ -55,7 +88,7 @@ def build(minify, optimize, output, clean):
             generator.clean()
 
         info("Building site for production...")
-        info(f"Output directory: {generator.build_dir}\n")
+        verbose(f"Output directory: {generator.build_dir}")
 
         # Enable production settings
         config = load_config(generator.project_root / "nitro.config.py")
@@ -72,10 +105,15 @@ def build(minify, optimize, output, clean):
         })
 
         # Generate site
-        success_result = generator.generate(verbose=False)
+        logger.section("Generating Pages")
+        success_result = generator.generate(verbose=verbose_flag)
 
         if not success_result:
-            error("Build failed during generation")
+            logger.error_panel(
+                "Build Failed",
+                "Failed to generate site during build",
+                hint="Check your page files for syntax errors"
+            )
             sys.exit(1)
 
         # Initialize bundler
@@ -83,30 +121,36 @@ def build(minify, optimize, output, clean):
 
         # Optimize CSS
         if minify:
-            info("\nOptimizing CSS...")
-            bundler.optimize_css(minify=True)
+            logger.section("Optimizing CSS")
+            css_count = bundler.optimize_css(minify=True)
+            if css_count:
+                verbose(f"Minified {css_count} CSS file(s)")
 
         # Optimize images
         if optimize:
-            info("\nOptimizing images...")
-            bundler.optimize_images(quality=85)
+            logger.section("Optimizing Images")
+            img_count = bundler.optimize_images(quality=85)
+            if img_count:
+                verbose(f"Optimized {img_count} image(s)")
 
         # Generate sitemap
-        info("\nGenerating sitemap...")
+        logger.section("Generating Metadata")
         html_files = list(generator.build_dir.rglob("*.html"))
         sitemap_path = generator.build_dir / "sitemap.xml"
         bundler.generate_sitemap(
             base_url=config.base_url, html_files=html_files, output_path=sitemap_path
         )
+        verbose(f"Created sitemap.xml with {len(html_files)} URLs")
 
         # Generate robots.txt
         robots_path = generator.build_dir / "robots.txt"
         bundler.generate_robots_txt(config.base_url, robots_path)
+        verbose("Created robots.txt")
 
         # Create asset manifest
-        info("\nCreating asset manifest...")
         manifest_path = generator.build_dir / "manifest.json"
         bundler.create_asset_manifest(manifest_path)
+        verbose("Created manifest.json")
 
         # Calculate build statistics
         stats = bundler.calculate_build_size()
@@ -120,63 +164,33 @@ def build(minify, optimize, output, clean):
             "optimize": optimize,
         })
 
-        # Display build summary
-        info("\n")
-        display_build_summary(stats, generator.build_dir, minify, optimize)
+        # Build optimizations list
+        optimizations = []
+        if minify:
+            optimizations.append("HTML & CSS Minification")
+        if optimize:
+            optimizations.append("Image Optimization")
+        optimizations.extend(["Sitemap Generation", "Asset Manifest"])
 
-        success(f"\nProduction build complete! Output: {generator.build_dir}")
+        # Display build summary
+        logger.newline()
+        logger.build_summary(
+            stats=stats,
+            build_dir=generator.build_dir,
+            elapsed=logger.get_elapsed(),
+            optimizations=optimizations,
+        )
+
+        logger.newline()
+        success(f"Production build complete! Output: {generator.build_dir}")
 
     except Exception as e:
-        error(f"Build failed: {e}")
-        import traceback
-
-        traceback.print_exc()
+        if debug:
+            logger.exception(e, show_trace=True)
+        else:
+            logger.error_panel(
+                "Build Error",
+                str(e),
+                hint="Use --debug for full traceback"
+            )
         sys.exit(1)
-
-
-def display_build_summary(
-        stats: dict, build_dir: Path, minify: bool, optimize: bool
-) -> None:
-    """Display build summary.
-
-    Args:
-        stats: Build statistics
-        build_dir: Build directory path
-        minify: Whether minification was enabled
-        optimize: Whether optimization was enabled
-    """
-    from ..utils import logger
-
-    # Create summary table
-    table = Table(
-        title="Build Summary",
-        show_header=True,
-        header_style="bold cyan"
-    )
-    table.add_column("Metric", style="cyan")
-    table.add_column("Value", style="green")
-    table.add_row("Total Files", str(stats["count"]))
-    table.add_row("Total Size", Bundler.format_size(stats["total"]))
-    # table.add_row("", "")  # Separator
-
-    # Add type breakdown
-    for file_type, size in stats["types"].items():
-        if size > 0:
-            table.add_row(f"{file_type.upper()} Files", Bundler.format_size(size))
-
-    logger.print(table)
-
-    optimizations = []
-    if minify:
-        optimizations.append("HTML & CSS Minification")
-    if optimize:
-        optimizations.append("Image Optimization")
-    optimizations.extend(["Sitemap Generation", "Asset Manifest"])
-
-    logger.print(
-        Panel(
-            "\n".join(f"✓ {opt}" for opt in optimizations),
-            title="Optimizations Applied",
-            border_style="green",
-        )
-    )

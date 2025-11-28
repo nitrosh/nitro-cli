@@ -1,6 +1,6 @@
 """Home page using nitro-ui and nitro-datastore."""
 
-from nitro_ui import HTML, Head, Body, Title, Meta, Link, Div, H1, H2, Paragraph, Ul, Li
+from nitro_ui import HTML, Head, Body, Title, Meta, Link, Div, H1, H2, Paragraph, UnorderedList, ListItem
 from nitro import Page, load_data
 import sys
 from pathlib import Path
@@ -28,10 +28,10 @@ def render():
     # Build feature list from data
     feature_items = []
     for feature in data.features:
-        item = Li(f"✓ {feature['name']}: {feature['description']}")
+        item = ListItem(f"{feature['name']}: {feature['description']}")
         feature_items.append(item)
 
-    features_list = Ul(*feature_items)
+    features_list = UnorderedList(*feature_items)
     features_list.add_attribute("class", "feature-list")
 
     # Create content div

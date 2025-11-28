@@ -1,6 +1,6 @@
 """Footer component using nitro-ui."""
 
-from nitro_ui import Footer as UIFooter, Paragraph, Anchor
+from nitro_ui import Footer as UIFooter, Paragraph, HtmlLink
 
 
 def Footer():
@@ -12,11 +12,11 @@ def Footer():
     footer_elem = UIFooter(
         Paragraph(
             "Built with ",
-            Anchor(
+            HtmlLink(
                 "Nitro", href="https://github.com/nitro-sh/nitro-cli", target="_blank"
             ),
             " and ",
-            Anchor("nitro-ui", href="https://github.com/nitrosh/nitro-ui", target="_blank"),
+            HtmlLink("nitro-ui", href="https://github.com/nitrosh/nitro-ui", target="_blank"),
         )
     )
     footer_elem.add_attribute("class", "footer")

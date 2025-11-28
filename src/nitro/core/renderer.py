@@ -37,9 +37,18 @@ class Renderer:
             if str(project_root) not in sys.path:
                 sys.path.insert(0, str(project_root))
 
-            # Load the page module
+            # Add src directory to Python path for component imports
+            src_dir = project_root / "src"
+            if str(src_dir) not in sys.path:
+                sys.path.insert(0, str(src_dir))
+
+            # Invalidate cached modules from the project to ensure fresh imports
+            self._invalidate_project_modules(project_root)
+
+            # Load the page module with a unique name to avoid caching issues
+            module_name = f"page_{page_path.stem}_{id(self)}"
             spec = importlib.util.spec_from_file_location(
-                f"page_{page_path.stem}", page_path
+                module_name, page_path
             )
 
             if not spec or not spec.loader:
@@ -137,6 +146,26 @@ class Renderer:
                 pass
 
         return html
+
+    def _invalidate_project_modules(self, project_root: Path) -> None:
+        """Remove cached modules from project directory to ensure fresh imports.
+
+        Args:
+            project_root: Root directory of the project
+        """
+        project_str = str(project_root)
+        modules_to_remove = []
+
+        for name, module in sys.modules.items():
+            if module is None:
+                continue
+            # Check if module has a file path within the project
+            module_file = getattr(module, "__file__", None)
+            if module_file and project_str in module_file:
+                modules_to_remove.append(name)
+
+        for name in modules_to_remove:
+            del sys.modules[name]
 
     def get_output_path(
         self, page_path: Path, source_dir: Path, build_dir: Path
