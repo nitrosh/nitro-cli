@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Test script for nitro-cli integration with external packages."""
 
+
 def test_imports():
     """Test that all external package imports work correctly."""
     print("Testing imports...")
@@ -8,6 +9,7 @@ def test_imports():
     # Test nitro-ui import
     try:
         from nitro_ui import HTML, Head, Body, Div, H1, Paragraph
+
         print("  ✓ nitro-ui imported successfully")
     except ImportError as e:
         print(f"  ✗ nitro-ui import failed: {e}")
@@ -16,6 +18,7 @@ def test_imports():
     # Test nitro-datastore import
     try:
         from nitro_datastore import NitroDataStore
+
         print("  ✓ nitro-datastore imported successfully")
     except ImportError as e:
         print(f"  ✗ nitro-datastore import failed: {e}")
@@ -24,6 +27,7 @@ def test_imports():
     # Test nitro-dispatch import
     try:
         from nitro_dispatch import PluginManager, PluginBase, hook
+
         print("  ✓ nitro-dispatch imported successfully")
     except ImportError as e:
         print(f"  ✗ nitro-dispatch import failed: {e}")
@@ -32,6 +36,7 @@ def test_imports():
     # Test nitro package imports
     try:
         from nitro import Config, Page, load_data
+
         print("  ✓ nitro package imports successful")
     except ImportError as e:
         print(f"  ✗ nitro package import failed: {e}")
@@ -40,6 +45,7 @@ def test_imports():
     # Test plugin system imports
     try:
         from nitro.plugins import NitroPlugin, PluginLoader, hook
+
         print("  ✓ nitro.plugins imports successful")
     except ImportError as e:
         print(f"  ✗ nitro.plugins import failed: {e}")
@@ -61,7 +67,7 @@ def test_nitro_ui():
                 H1("Hello World"),
                 Paragraph("This is a test page generated with nitro-ui."),
             )
-        )
+        ),
     )
 
     html = page.render()
@@ -78,13 +84,12 @@ def test_datastore():
     from nitro_datastore import NitroDataStore
 
     # Test creating a datastore from dict
-    data = NitroDataStore({
-        "site": {
-            "name": "Test Site",
-            "description": "A test site"
-        },
-        "features": ["feature1", "feature2"]
-    })
+    data = NitroDataStore(
+        {
+            "site": {"name": "Test Site", "description": "A test site"},
+            "features": ["feature1", "feature2"],
+        }
+    )
 
     # Test dot notation access
     assert data.site.name == "Test Site"
@@ -132,7 +137,9 @@ if __name__ == "__main__":
 
     if not test_imports():
         all_passed = False
-        print("\n⚠️  Install packages first: pip install nitro-ui nitro-datastore nitro-dispatch")
+        print(
+            "\n⚠️  Install packages first: pip install nitro-ui nitro-datastore nitro-dispatch"
+        )
     else:
         try:
             test_nitro_ui()

@@ -8,41 +8,22 @@ import click
 
 from ..core.generator import Generator
 from ..core.watcher import Watcher
-from ..utils import logger, LogLevel, info, success, error, verbose, configure
+from ..utils import logger, LogLevel, info, success, verbose, configure
 
 
 @click.command()
 @click.option(
-    "--watch", "-w",
-    is_flag=True,
-    help="Watch for file changes and regenerate"
+    "--watch", "-w", is_flag=True, help="Watch for file changes and regenerate"
 )
 @click.option(
-    "--output", "-o",
-    default="build",
-    help="Output directory for generated files"
+    "--output", "-o", default="build", help="Output directory for generated files"
 )
 @click.option(
-    "--verbose", "-v",
-    "verbose_flag",
-    is_flag=True,
-    help="Enable verbose output"
+    "--verbose", "-v", "verbose_flag", is_flag=True, help="Enable verbose output"
 )
-@click.option(
-    "--quiet", "-q",
-    is_flag=True,
-    help="Only show errors and final summary"
-)
-@click.option(
-    "--debug",
-    is_flag=True,
-    help="Enable debug mode with full tracebacks"
-)
-@click.option(
-    "--log-file",
-    type=click.Path(),
-    help="Write logs to a file"
-)
+@click.option("--quiet", "-q", is_flag=True, help="Only show errors and final summary")
+@click.option("--debug", is_flag=True, help="Enable debug mode with full tracebacks")
+@click.option("--log-file", type=click.Path(), help="Write logs to a file")
 def generate(watch, output, verbose_flag, quiet, debug, log_file):
     """
     Generate static HTML files from source files.
@@ -82,7 +63,7 @@ def generate(watch, output, verbose_flag, quiet, debug, log_file):
             logger.error_panel(
                 "Generation Failed",
                 "Failed to generate site",
-                hint="Check your page files for syntax errors"
+                hint="Check your page files for syntax errors",
             )
             sys.exit(1)
 
@@ -160,8 +141,6 @@ def generate(watch, output, verbose_flag, quiet, debug, log_file):
             logger.exception(e, show_trace=True)
         else:
             logger.error_panel(
-                "Generation Error",
-                str(e),
-                hint="Use --debug for full traceback"
+                "Generation Error", str(e), hint="Use --debug for full traceback"
             )
         sys.exit(1)

@@ -13,11 +13,7 @@ from ..utils import info
     default="html",
     help="Output format for documentation",
 )
-@click.option(
-    "--output", "-o",
-    default="docs",
-    help="Output directory"
-)
+@click.option("--output", "-o", default="docs", help="Output directory")
 def docs(format, output):
     """
     Generate documentation for the site.

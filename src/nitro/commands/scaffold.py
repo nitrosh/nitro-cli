@@ -8,7 +8,7 @@ from pathlib import Path
 import click
 from rich.progress import Progress, SpinnerColumn, TextColumn
 
-from ..utils import logger, LogLevel, info, success, error, warning, verbose, configure
+from ..utils import logger, LogLevel, info, warning, verbose, configure
 
 
 @click.command()
@@ -20,32 +20,13 @@ from ..utils import logger, LogLevel, info, success, error, warning, verbose, co
     default="website",
     help="Template to use for the project",
 )
+@click.option("--no-git", is_flag=True, help="Skip git initialization")
+@click.option("--no-install", is_flag=True, help="Skip dependency installation")
 @click.option(
-    "--no-git",
-    is_flag=True,
-    help="Skip git initialization"
+    "--verbose", "-v", "verbose_flag", is_flag=True, help="Enable verbose output"
 )
-@click.option(
-    "--no-install",
-    is_flag=True,
-    help="Skip dependency installation"
-)
-@click.option(
-    "--verbose", "-v",
-    "verbose_flag",
-    is_flag=True,
-    help="Enable verbose output"
-)
-@click.option(
-    "--debug",
-    is_flag=True,
-    help="Enable debug mode with full tracebacks"
-)
-@click.option(
-    "--log-file",
-    type=click.Path(),
-    help="Write logs to a file"
-)
+@click.option("--debug", is_flag=True, help="Enable debug mode with full tracebacks")
+@click.option("--log-file", type=click.Path(), help="Write logs to a file")
 def scaffold(project_name, template, no_git, no_install, verbose_flag, debug, log_file):
     """
     Create a new Nitro project.
@@ -72,7 +53,7 @@ def scaffold(project_name, template, no_git, no_install, verbose_flag, debug, lo
             logger.error_panel(
                 "Directory Exists",
                 f"Directory '{project_name}' already exists!",
-                hint="Choose a different project name or remove the existing directory"
+                hint="Choose a different project name or remove the existing directory",
             )
             sys.exit(1)
 
@@ -81,9 +62,9 @@ def scaffold(project_name, template, no_git, no_install, verbose_flag, debug, lo
         verbose(f"Location: {project_path}")
 
         with Progress(
-                SpinnerColumn(),
-                TextColumn("[progress.description]{task.description}"),
-                console=logger.console,
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            console=logger.console,
         ) as progress:
             # Create project directory
             task = progress.add_task("Creating project structure...", total=None)
@@ -117,7 +98,10 @@ def scaffold(project_name, template, no_git, no_install, verbose_flag, debug, lo
                 progress.update(task, description="Initializing git repository...")
                 try:
                     subprocess.run(
-                        ["git", "init"], cwd=project_path, check=True, capture_output=True
+                        ["git", "init"],
+                        cwd=project_path,
+                        check=True,
+                        capture_output=True,
                     )
                     verbose("Initialized git repository")
                 except (subprocess.CalledProcessError, FileNotFoundError):
@@ -128,7 +112,14 @@ def scaffold(project_name, template, no_git, no_install, verbose_flag, debug, lo
                 progress.update(task, description="Installing dependencies...")
                 try:
                     subprocess.run(
-                        [sys.executable, "-m", "pip", "install", "-r", "requirements.txt"],
+                        [
+                            sys.executable,
+                            "-m",
+                            "pip",
+                            "install",
+                            "-r",
+                            "requirements.txt",
+                        ],
                         cwd=project_path,
                         check=True,
                         capture_output=True,
@@ -150,9 +141,7 @@ def scaffold(project_name, template, no_git, no_install, verbose_flag, debug, lo
             logger.exception(e, show_trace=True)
         else:
             logger.error_panel(
-                "Scaffold Error",
-                str(e),
-                hint="Use --debug for full traceback"
+                "Scaffold Error", str(e), hint="Use --debug for full traceback"
             )
         sys.exit(1)
 

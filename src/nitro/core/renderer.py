@@ -1,6 +1,6 @@
 """Renderer for generating HTML from nitro-ui pages."""
 
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 from pathlib import Path
 import importlib.util
 import sys
@@ -47,9 +47,7 @@ class Renderer:
 
             # Load the page module with a unique name to avoid caching issues
             module_name = f"page_{page_path.stem}_{id(self)}"
-            spec = importlib.util.spec_from_file_location(
-                module_name, page_path
-            )
+            spec = importlib.util.spec_from_file_location(module_name, page_path)
 
             if not spec or not spec.loader:
                 error(f"Failed to load page: {page_path}")

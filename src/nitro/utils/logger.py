@@ -9,7 +9,6 @@ Provides production-quality logging with:
 - Log file support
 """
 
-import sys
 import socket
 from datetime import datetime
 from enum import IntEnum
@@ -21,37 +20,39 @@ from rich.theme import Theme
 from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
-from rich.box import ROUNDED, HEAVY, SIMPLE
-from rich.style import Style
+from rich.box import ROUNDED
 from rich.traceback import Traceback
 
 
 class LogLevel(IntEnum):
     """Log verbosity levels."""
-    QUIET = 0    # Only errors and final summary
-    NORMAL = 1   # Key milestones (default)
+
+    QUIET = 0  # Only errors and final summary
+    NORMAL = 1  # Key milestones (default)
     VERBOSE = 2  # Detailed per-file output
-    DEBUG = 3    # Full debug information
+    DEBUG = 3  # Full debug information
 
 
 # Custom theme for Nitro CLI
-NITRO_THEME = Theme({
-    "info": "cyan",
-    "success": "green",
-    "warning": "yellow",
-    "error": "bold red",
-    "highlight": "magenta",
-    "dim": "dim",
-    "brand": "bold cyan",
-    "brand.accent": "bold magenta",
-    "path": "blue",
-    "time": "dim cyan",
-    "size": "green",
-    "hmr": "yellow",
-    "hmr.file": "bold yellow",
-    "server.url": "bold green underline",
-    "server.label": "dim",
-})
+NITRO_THEME = Theme(
+    {
+        "info": "cyan",
+        "success": "green",
+        "warning": "yellow",
+        "error": "bold red",
+        "highlight": "magenta",
+        "dim": "dim",
+        "brand": "bold cyan",
+        "brand.accent": "bold magenta",
+        "path": "blue",
+        "time": "dim cyan",
+        "size": "green",
+        "hmr": "yellow",
+        "hmr.file": "bold yellow",
+        "server.url": "bold green underline",
+        "server.label": "dim",
+    }
+)
 
 
 class NitroLogger:
@@ -336,12 +337,15 @@ class NitroLogger:
                 count_str = f" ({count} files)" if count else ""
                 table.add_row(
                     f"{file_type.upper()} Files",
-                    f"{self._format_size(size)}{count_str}"
+                    f"{self._format_size(size)}{count_str}",
                 )
 
         # Add separator and totals
         table.add_row("", "")
-        table.add_row("Total", f"{stats.get('count', 0)} files ({self._format_size(stats.get('total', 0))})")
+        table.add_row(
+            "Total",
+            f"{stats.get('count', 0)} files ({self._format_size(stats.get('total', 0))})",
+        )
         table.add_row("Time", time_str)
 
         # Create panel with table
@@ -486,6 +490,7 @@ _logger = NitroLogger()
 # -------------------------------------------------------------------------
 # Module-level convenience functions (backward compatible)
 # -------------------------------------------------------------------------
+
 
 def configure(
     level: LogLevel = LogLevel.NORMAL,

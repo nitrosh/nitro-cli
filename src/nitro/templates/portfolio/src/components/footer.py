@@ -16,7 +16,9 @@ def Footer():
                 "Nitro", href="https://github.com/nitro-sh/nitro-cli", target="_blank"
             ),
             " and ",
-            HtmlLink("nitro-ui", href="https://github.com/nitrosh/nitro-ui", target="_blank"),
+            HtmlLink(
+                "nitro-ui", href="https://github.com/nitrosh/nitro-ui", target="_blank"
+            ),
         )
     )
     footer_elem.add_attribute("class", "footer")

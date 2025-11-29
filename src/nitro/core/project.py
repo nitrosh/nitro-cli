@@ -13,11 +13,11 @@ class Page:
     """Represents a page in the Nitro site."""
 
     def __init__(
-            self,
-            title: str,
-            content: Any,
-            meta: Optional[Dict[str, Any]] = None,
-            template: Optional[str] = None,
+        self,
+        title: str,
+        content: Any,
+        meta: Optional[Dict[str, Any]] = None,
+        template: Optional[str] = None,
     ):
         """
         Initialize a page.
@@ -34,7 +34,9 @@ class Page:
         self.template = template
 
 
-def load_data(data_path: Union[str, Path], wrap: bool = True) -> Union[NitroDataStore, Any]:
+def load_data(
+    data_path: Union[str, Path], wrap: bool = True
+) -> Union[NitroDataStore, Any]:
     """
     Load data from a file (JSON, YAML, etc.).
 

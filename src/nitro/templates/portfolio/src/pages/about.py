@@ -49,6 +49,9 @@ def render():
 
     return Page(
         title="About - My Portfolio",
-        meta={"description": "About me and my work", "keywords": "about, nitro, portfolio"},
+        meta={
+            "description": "About me and my work",
+            "keywords": "about, nitro, portfolio",
+        },
         content=page,
     )

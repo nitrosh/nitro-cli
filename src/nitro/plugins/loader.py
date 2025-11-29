@@ -192,4 +192,8 @@ class PluginLoader:
     def plugins(self) -> List[NitroPlugin]:
         """Get list of loaded plugin instances."""
         # Access the manager's internal plugin instances
-        return list(self.manager._plugins.values()) if hasattr(self.manager, '_plugins') else []
+        return (
+            list(self.manager._plugins.values())
+            if hasattr(self.manager, "_plugins")
+            else []
+        )

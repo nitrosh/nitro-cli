@@ -1,6 +1,19 @@
 """Home page using nitro-ui and nitro-datastore."""
 
-from nitro_ui import HTML, Head, Body, Title, Meta, Link, Div, H1, H2, Paragraph, UnorderedList, ListItem
+from nitro_ui import (
+    HTML,
+    Head,
+    Body,
+    Title,
+    Meta,
+    Link,
+    Div,
+    H1,
+    H2,
+    Paragraph,
+    UnorderedList,
+    ListItem,
+)
 from nitro import Page, load_data
 import sys
 from pathlib import Path

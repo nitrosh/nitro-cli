@@ -8,10 +8,7 @@ from src.components.header import HeaderComponent
 
 class HomePage(Fragment):
     def __init__(self):
-        super().__init__(
-            HeaderComponent,
-            H1("Welcome to the Home Page")
-        )
+        super().__init__(HeaderComponent, H1("Welcome to the Home Page"))
 
     def scoped_css(self):
         return {"h1": {"color": "red"}}

@@ -1,59 +1,32 @@
 """Build command for production optimization."""
 
 import sys
-from pathlib import Path
 
 import click
 
 from ..core.bundler import Bundler
 from ..core.config import load_config
 from ..core.generator import Generator
-from ..plugins import PluginLoader
-from ..utils import logger, LogLevel, info, success, error, warning, verbose, configure
+from ..utils import logger, LogLevel, info, success, verbose, configure
 
 
 @click.command()
 @click.option(
-    "--minify/--no-minify",
-    default=True,
-    help="Minify HTML and CSS (default: enabled)"
+    "--minify/--no-minify", default=True, help="Minify HTML and CSS (default: enabled)"
 )
 @click.option(
     "--optimize/--no-optimize",
     default=True,
     help="Optimize images and assets (default: enabled)",
 )
+@click.option("--output", "-o", default="build", help="Output directory")
+@click.option("--clean", is_flag=True, help="Clean build directory before building")
 @click.option(
-    "--output", "-o",
-    default="build",
-    help="Output directory"
+    "--verbose", "-v", "verbose_flag", is_flag=True, help="Enable verbose output"
 )
-@click.option(
-    "--clean",
-    is_flag=True,
-    help="Clean build directory before building"
-)
-@click.option(
-    "--verbose", "-v",
-    "verbose_flag",
-    is_flag=True,
-    help="Enable verbose output"
-)
-@click.option(
-    "--quiet", "-q",
-    is_flag=True,
-    help="Only show errors and final summary"
-)
-@click.option(
-    "--debug",
-    is_flag=True,
-    help="Enable debug mode with full tracebacks"
-)
-@click.option(
-    "--log-file",
-    type=click.Path(),
-    help="Write logs to a file"
-)
+@click.option("--quiet", "-q", is_flag=True, help="Only show errors and final summary")
+@click.option("--debug", is_flag=True, help="Enable debug mode with full tracebacks")
+@click.option("--log-file", type=click.Path(), help="Write logs to a file")
 def build(minify, optimize, output, clean, verbose_flag, quiet, debug, log_file):
     """
     Build the site for production.
@@ -97,12 +70,15 @@ def build(minify, optimize, output, clean, verbose_flag, quiet, debug, log_file)
             generator.renderer.minify_html = True
 
         # Trigger pre-build hook
-        generator.plugin_loader.trigger("nitro.pre_build", {
-            "config": config,
-            "build_dir": str(generator.build_dir),
-            "minify": minify,
-            "optimize": optimize,
-        })
+        generator.plugin_loader.trigger(
+            "nitro.pre_build",
+            {
+                "config": config,
+                "build_dir": str(generator.build_dir),
+                "minify": minify,
+                "optimize": optimize,
+            },
+        )
 
         # Generate site
         logger.section("Generating Pages")
@@ -112,7 +88,7 @@ def build(minify, optimize, output, clean, verbose_flag, quiet, debug, log_file)
             logger.error_panel(
                 "Build Failed",
                 "Failed to generate site during build",
-                hint="Check your page files for syntax errors"
+                hint="Check your page files for syntax errors",
             )
             sys.exit(1)
 
@@ -156,13 +132,16 @@ def build(minify, optimize, output, clean, verbose_flag, quiet, debug, log_file)
         stats = bundler.calculate_build_size()
 
         # Trigger post-build hook
-        generator.plugin_loader.trigger("nitro.post_build", {
-            "config": config,
-            "build_dir": str(generator.build_dir),
-            "stats": stats,
-            "minify": minify,
-            "optimize": optimize,
-        })
+        generator.plugin_loader.trigger(
+            "nitro.post_build",
+            {
+                "config": config,
+                "build_dir": str(generator.build_dir),
+                "stats": stats,
+                "minify": minify,
+                "optimize": optimize,
+            },
+        )
 
         # Build optimizations list
         optimizations = []
@@ -189,8 +168,6 @@ def build(minify, optimize, output, clean, verbose_flag, quiet, debug, log_file)
             logger.exception(e, show_trace=True)
         else:
             logger.error_panel(
-                "Build Error",
-                str(e),
-                hint="Use --debug for full traceback"
+                "Build Error", str(e), hint="Use --debug for full traceback"
             )
         sys.exit(1)

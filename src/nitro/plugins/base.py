@@ -1,7 +1,5 @@
 """Base plugin class for Nitro using nitro-dispatch."""
 
-from typing import Any, Dict, Optional
-
 from nitro_dispatch import PluginBase, hook
 
 

@@ -75,11 +75,14 @@ class Generator:
         info(f"Output directory: {self.build_dir}")
 
         # Trigger pre-generate hook
-        self.plugin_loader.trigger("nitro.pre_generate", {
-            "config": self.config,
-            "source_dir": str(self.source_dir),
-            "build_dir": str(self.build_dir),
-        })
+        self.plugin_loader.trigger(
+            "nitro.pre_generate",
+            {
+                "config": self.config,
+                "source_dir": str(self.source_dir),
+                "build_dir": str(self.build_dir),
+            },
+        )
 
         # Ensure build directory exists
         self.build_dir.mkdir(parents=True, exist_ok=True)
@@ -113,14 +116,21 @@ class Generator:
 
                 if html:
                     # Trigger post-generate hook to allow HTML modification
-                    hook_result = self.plugin_loader.trigger("nitro.post_generate", {
-                        "page_path": str(page_path),
-                        "output": html,
-                        "config": self.config,
-                    })
+                    hook_result = self.plugin_loader.trigger(
+                        "nitro.post_generate",
+                        {
+                            "page_path": str(page_path),
+                            "output": html,
+                            "config": self.config,
+                        },
+                    )
 
                     # Use modified output if returned
-                    if hook_result and isinstance(hook_result, dict) and "output" in hook_result:
+                    if (
+                        hook_result
+                        and isinstance(hook_result, dict)
+                        and "output" in hook_result
+                    ):
                         html = hook_result["output"]
 
                     output_path = self.renderer.get_output_path(

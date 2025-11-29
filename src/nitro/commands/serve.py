@@ -14,35 +14,15 @@ from ..utils import logger, LogLevel, info, success, error, configure
 
 @click.command()
 @click.option(
-    "--port", "-p",
-    default=3000,
-    help="Port number for the development server"
+    "--port", "-p", default=3000, help="Port number for the development server"
 )
 @click.option(
-    "--host", "-h",
-    default="localhost",
-    help="Host address for the development server"
+    "--host", "-h", default="localhost", help="Host address for the development server"
 )
-@click.option(
-    "--no-reload",
-    is_flag=True,
-    help="Disable live reload"
-)
-@click.option(
-    "--verbose", "-v",
-    is_flag=True,
-    help="Enable verbose output"
-)
-@click.option(
-    "--debug",
-    is_flag=True,
-    help="Enable debug mode with full tracebacks"
-)
-@click.option(
-    "--log-file",
-    type=click.Path(),
-    help="Write logs to a file"
-)
+@click.option("--no-reload", is_flag=True, help="Disable live reload")
+@click.option("--verbose", "-v", is_flag=True, help="Enable verbose output")
+@click.option("--debug", is_flag=True, help="Enable debug mode with full tracebacks")
+@click.option("--log-file", type=click.Path(), help="Write logs to a file")
 def serve(port, host, no_reload, verbose, debug, log_file):
     """
     Start a local development server.
@@ -71,7 +51,9 @@ def serve(port, host, no_reload, verbose, debug, log_file):
         sys.exit(1)
 
 
-async def serve_async(port: int, host: str, enable_reload: bool, debug_mode: bool = False):
+async def serve_async(
+    port: int, host: str, enable_reload: bool, debug_mode: bool = False
+):
     """Async serve implementation.
 
     Args:
@@ -87,7 +69,9 @@ async def serve_async(port: int, host: str, enable_reload: bool, debug_mode: boo
     generator = Generator()
 
     # Check if build directory exists and contains any HTML file (including nested)
-    if not generator.build_dir.exists() or not list(generator.build_dir.rglob("*.html")):
+    if not generator.build_dir.exists() or not list(
+        generator.build_dir.rglob("*.html")
+    ):
         info("Build directory is empty or doesn't exist. Generating site...")
         logger.start_timer()
         success_result = generator.generate(verbose=False)
@@ -95,7 +79,7 @@ async def serve_async(port: int, host: str, enable_reload: bool, debug_mode: boo
             logger.error_panel(
                 "Generation Failed",
                 "Failed to generate site before starting server",
-                hint="Check your page files for syntax errors"
+                hint="Check your page files for syntax errors",
             )
             return
         success(f"Site generated in {logger.get_elapsed()}")
