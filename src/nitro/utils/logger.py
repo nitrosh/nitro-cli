@@ -67,6 +67,7 @@ class NitroLogger:
         self.show_timestamps = False
         self.log_file: Optional[Path] = None
         self._file_console: Optional[Console] = None
+        self._file_handle = None  # Store file handle for cleanup
         self._start_time: Optional[datetime] = None
 
     def configure(
@@ -86,13 +87,35 @@ class NitroLogger:
         self.show_timestamps = show_timestamps or level >= LogLevel.VERBOSE
 
         if log_file:
+            # Close any existing file handle
+            self._close_log_file()
+
             self.log_file = Path(log_file)
+            self._file_handle = open(self.log_file, "w")
             self._file_console = Console(
-                file=open(self.log_file, "w"),
+                file=self._file_handle,
                 theme=NITRO_THEME,
                 force_terminal=False,
                 no_color=True,
             )
+
+    def _close_log_file(self) -> None:
+        """Close the log file handle if open."""
+        if self._file_handle is not None:
+            try:
+                self._file_handle.close()
+            except Exception:
+                pass
+            self._file_handle = None
+            self._file_console = None
+
+    def close(self) -> None:
+        """Clean up resources."""
+        self._close_log_file()
+
+    def __del__(self):
+        """Destructor to ensure file handle is closed."""
+        self._close_log_file()
 
     def set_level(self, level: LogLevel) -> None:
         """Set the verbosity level."""
@@ -263,6 +286,7 @@ class NitroLogger:
         """Get the local network IP address."""
         try:
             s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            s.settimeout(1.0)  # 1 second timeout to avoid hanging
             s.connect(("8.8.8.8", 80))
             ip = s.getsockname()[0]
             s.close()

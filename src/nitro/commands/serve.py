@@ -1,6 +1,7 @@
 """Serve command for local development server."""
 
 import asyncio
+import signal
 import sys
 from pathlib import Path
 
@@ -40,9 +41,8 @@ def serve(port, host, no_reload, verbose, debug, log_file):
     try:
         asyncio.run(serve_async(port, host, not no_reload, debug))
     except KeyboardInterrupt:
-        logger.newline()
-        info("Server stopped")
-        sys.exit(0)
+        # This shouldn't normally be reached since we handle signals in serve_async
+        pass
     except Exception as e:
         if debug:
             logger.exception(e, show_trace=True)
@@ -106,53 +106,59 @@ async def serve_async(
         # Get the current event loop for thread-safe scheduling
         loop = asyncio.get_running_loop()
 
+        # Lock to prevent concurrent regeneration (race condition)
+        regeneration_lock = asyncio.Lock()
+
         async def on_file_change(path: Path) -> None:
             """Handle file changes."""
             nonlocal generator
-            logger.start_timer()
 
-            # Log the file change with HMR style
-            try:
-                relative_path = str(path.relative_to(generator.project_root))
-            except ValueError:
-                relative_path = path.name
-            logger.hmr_change(relative_path)
+            # Prevent concurrent regeneration which could corrupt state
+            async with regeneration_lock:
+                logger.start_timer()
 
-            # Determine what changed
-            should_notify = False
+                # Log the file change with HMR style
+                try:
+                    relative_path = str(path.relative_to(generator.project_root))
+                except ValueError:
+                    relative_path = path.name
+                logger.hmr_change(relative_path)
 
-            if "pages" in str(path):
-                # Regenerate specific page
-                if path.suffix == ".py" and path.name != "__init__.py":
-                    logger.hmr_rebuilding(1, "page")
-                    if generator.regenerate_page(path, verbose=False):
+                # Determine what changed
+                should_notify = False
+
+                if "pages" in str(path):
+                    # Regenerate specific page
+                    if path.suffix == ".py" and path.name != "__init__.py":
+                        logger.hmr_rebuilding(1, "page")
+                        if generator.regenerate_page(path, verbose=False):
+                            should_notify = True
+                elif "components" in str(path):
+                    # Component changed - regenerate all pages
+                    logger.hmr_rebuilding(target="site")
+                    if generator.generate(verbose=False):
                         should_notify = True
-            elif "components" in str(path):
-                # Component changed - regenerate all pages
-                logger.hmr_rebuilding(target="site")
-                if generator.generate(verbose=False):
+                elif "styles" in str(path) or "public" in str(path):
+                    # Recopy assets
+                    logger.hmr_rebuilding(target="assets")
+                    generator._copy_assets(verbose=False)
                     should_notify = True
-            elif "styles" in str(path) or "public" in str(path):
-                # Recopy assets
-                logger.hmr_rebuilding(target="assets")
-                generator._copy_assets(verbose=False)
-                should_notify = True
-            elif path.name == "nitro.config.py":
-                # Config changed - regenerate entire site
-                logger.hmr_rebuilding(target="site")
-                generator = Generator()  # Reload config
-                if generator.generate(verbose=False):
-                    should_notify = True
-            else:
-                # Other changes - regenerate entire site
-                logger.hmr_rebuilding(target="site")
-                if generator.generate(verbose=False):
-                    should_notify = True
+                elif path.name == "nitro.config.py":
+                    # Config changed - regenerate entire site
+                    logger.hmr_rebuilding(target="site")
+                    generator = Generator()  # Reload config
+                    if generator.generate(verbose=False):
+                        should_notify = True
+                else:
+                    # Other changes - regenerate entire site
+                    logger.hmr_rebuilding(target="site")
+                    if generator.generate(verbose=False):
+                        should_notify = True
 
-            # Notify clients to reload
-            if should_notify:
-                await server.notify_reload()
-                logger.hmr_done()
+                # Notify clients to reload
+                if should_notify:
+                    await server.notify_reload()
+                    logger.hmr_done()
 
         def on_file_change_sync(path: Path) -> None:
             """Sync wrapper for file change handler (called from watcher thread)."""
@@ -162,16 +168,38 @@ async def serve_async(
         watcher = Watcher(generator.project_root, on_file_change_sync)
         watcher.start()
 
+    # Create shutdown event
+    shutdown_event = asyncio.Event()
+
+    def signal_handler():
+        """Handle shutdown signals."""
+        logger.newline()
+        info("Shutting down...")
+        shutdown_event.set()
+
+    # Register signal handlers for graceful shutdown
+    loop = asyncio.get_running_loop()
+    for sig in (signal.SIGINT, signal.SIGTERM):
+        try:
+            loop.add_signal_handler(sig, signal_handler)
+        except NotImplementedError:
+            # Windows doesn't support add_signal_handler
+            pass
+
     try:
         # Run server forever
         info("Press Ctrl+C to stop the server")
         logger.newline()
-        await asyncio.Event().wait()
+        await shutdown_event.wait()
 
     except asyncio.CancelledError:
         pass
     finally:
-        # Cleanup
+        # Cleanup in proper order
         if watcher:
             watcher.stop()
+
+        # Give pending tasks a moment to complete
+        await asyncio.sleep(0.1)
+
         await server.stop()

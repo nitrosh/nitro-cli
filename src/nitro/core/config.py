@@ -100,6 +100,10 @@ def load_config(config_path: Path) -> Config:
 
     Returns:
         Loaded configuration object
+
+    Raises:
+        SyntaxError: If the config file has syntax errors
+        ValueError: If the config is not a valid Config object
     """
     import importlib.util
     import sys
@@ -107,13 +111,36 @@ def load_config(config_path: Path) -> Config:
     if not config_path.exists():
         return Config()
 
-    spec = importlib.util.spec_from_file_location("nitro_config", config_path)
-    if spec and spec.loader:
-        module = importlib.util.module_from_spec(spec)
-        sys.modules["nitro_config"] = module
-        spec.loader.exec_module(module)
+    try:
+        spec = importlib.util.spec_from_file_location("nitro_config", config_path)
+        if spec and spec.loader:
+            module = importlib.util.module_from_spec(spec)
+            sys.modules["nitro_config"] = module
 
-        if hasattr(module, "config"):
-            return module.config
+            try:
+                spec.loader.exec_module(module)
+            finally:
+                # Clean up module from sys.modules
+                if "nitro_config" in sys.modules:
+                    del sys.modules["nitro_config"]
 
-    return Config()
+            if hasattr(module, "config"):
+                config = module.config
+                # Validate that it's actually a Config object
+                if not isinstance(config, Config):
+                    raise ValueError(
+                        f"nitro.config.py 'config' must be a Config object, "
+                        f"got {type(config).__name__}"
+                    )
+                return config
+
+        return Config()
+
+    except SyntaxError as e:
+        raise SyntaxError(
+            f"Syntax error in {config_path}: {e.msg} at line {e.lineno}"
+        ) from e
+    except Exception as e:
+        if isinstance(e, (SyntaxError, ValueError)):
+            raise
+        raise ValueError(f"Error loading {config_path}: {e}") from e

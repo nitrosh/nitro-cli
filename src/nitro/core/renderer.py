@@ -32,15 +32,20 @@ class Renderer:
         Returns:
             Rendered HTML string or None if error
         """
+        # Track paths we add to clean up after
+        paths_to_remove = []
+
         try:
             # Add project root to Python path
             if str(project_root) not in sys.path:
                 sys.path.insert(0, str(project_root))
+                paths_to_remove.append(str(project_root))
 
             # Add src directory to Python path for component imports
             src_dir = project_root / "src"
             if str(src_dir) not in sys.path:
                 sys.path.insert(0, str(src_dir))
+                paths_to_remove.append(str(src_dir))
 
             # Invalidate cached modules from the project to ensure fresh imports
             self._invalidate_project_modules(project_root)
@@ -55,28 +60,35 @@ class Renderer:
 
             module = importlib.util.module_from_spec(spec)
             sys.modules[spec.name] = module
-            spec.loader.exec_module(module)
 
-            # Check if module has render function
-            if not hasattr(module, "render"):
-                error(f"Page {page_path} missing render() function")
-                return None
+            try:
+                spec.loader.exec_module(module)
 
-            # Call render function
-            page = module.render()
+                # Check if module has render function
+                if not hasattr(module, "render"):
+                    error(f"Page {page_path} missing render() function")
+                    return None
 
-            # Handle Page object
-            if isinstance(page, Page):
-                html = self._render_page_object(page)
-            else:
-                # Assume it's a nitro-ui element
-                html = self._render_element(page)
+                # Call render function
+                page = module.render()
 
-            # Apply post-processing
-            if html:
-                html = self._post_process(html)
+                # Handle Page object
+                if isinstance(page, Page):
+                    html = self._render_page_object(page)
+                else:
+                    # Assume it's a nitro-ui element
+                    html = self._render_element(page)
 
-            return html
+                # Apply post-processing
+                if html:
+                    html = self._post_process(html)
+
+                return html
+
+            finally:
+                # Clean up the dynamically loaded module to prevent memory leaks
+                if spec.name in sys.modules:
+                    del sys.modules[spec.name]
 
         except Exception as e:
             error(f"Error rendering {page_path}: {e}")
@@ -84,6 +96,12 @@ class Renderer:
 
             traceback.print_exc()
             return None
+
+        finally:
+            # Clean up sys.path to avoid pollution
+            for path in paths_to_remove:
+                if path in sys.path:
+                    sys.path.remove(path)
 
     def _render_page_object(self, page: Page) -> str:
         """Render a Page object to HTML.

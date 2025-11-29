@@ -1,16 +1,17 @@
 # Nitro CLI
 
-> A powerful static site generator built on YDNATL
+> A powerful static site generator built with Python
 
-Nitro CLI is a command-line tool that helps you build beautiful static websites using Python and [YDNATL](https://github.com/sn/ydnatl). Write your pages in Python, leverage the power of YDNATL's HTML builder, and deploy static sites with ease.
+Nitro CLI is a command-line tool that helps you build beautiful static websites using Python and [nitro-ui](https://github.com/nitrosh/nitro-ui). Write your pages in Python, leverage the power of nitro-ui's HTML builder, and deploy static sites with ease.
 
 ## Features
 
-- **Python-Powered**: Write pages using Python and YDNATL instead of template languages
+- **Python-Powered**: Write pages using Python and nitro-ui instead of template languages
 - **Component-Based**: Reusable components with a clean architecture
 - **Fast Development**: Built-in development server with hot reload
 - **Production Ready**: Optimized builds with minification and asset optimization
-- **Extensible**: Plugin system for adding custom functionality
+- **Flexible Data**: Load JSON/YAML data with [nitro-datastore](https://github.com/nitrosh/nitro-datastore)
+- **Extensible**: Plugin system powered by [nitro-dispatch](https://github.com/nitrosh/nitro-dispatch)
 - **Multiple Templates**: Start quickly with website, portfolio, or blog templates
 
 ## Installation
@@ -24,7 +25,7 @@ pip install nitro-cli
 ### From Source (Development)
 
 ```bash
-git clone https://github.com/nitro-sh/nitro-cli.git
+git clone https://github.com/nitrosh/nitro-cli.git
 cd nitro-cli
 pip install -e .
 ```
@@ -34,7 +35,7 @@ pip install -e .
 ### 1. Create a New Project
 
 ```bash
-nitro scaffold my-site
+nitro new my-site
 cd my-site
 ```
 
@@ -44,7 +45,7 @@ Choose from available templates:
 - `blog` - Blog template
 
 ```bash
-nitro scaffold my-portfolio --template portfolio
+nitro new my-portfolio --template portfolio
 ```
 
 ### 2. Start Development Server
@@ -53,7 +54,10 @@ nitro scaffold my-portfolio --template portfolio
 nitro serve
 ```
 
-Visit http://localhost:3000 to see your site.
+Visit http://localhost:3000 to see your site. The server automatically:
+- Generates your site if the build directory is empty
+- Watches for file changes
+- Reloads the browser when changes are detected
 
 ### 3. Build for Production
 
@@ -72,19 +76,16 @@ my-site/
 ├── nitro.config.py          # Configuration file
 ├── requirements.txt
 ├── .gitignore
-├── README.md
 ├── src/
-│   ├── components/          # Reusable YDNATL components
+│   ├── components/          # Reusable nitro-ui components
 │   │   ├── header.py
 │   │   └── footer.py
 │   ├── pages/              # Page definitions (route = file path)
 │   │   ├── index.py        # -> /index.html
 │   │   └── about.py        # -> /about.html
-│   ├── layouts/            # Page layouts/templates
 │   ├── data/               # JSON/YAML data files
 │   ├── styles/             # CSS stylesheets
-│   ├── public/             # Static assets
-│   ├── tests/              # Test files
+│   ├── public/             # Static assets (copied to build root)
 │   └── plugins/            # Project-specific plugins
 ├── build/                  # Generated output
 └── .nitro/                 # Nitro cache & metadata
@@ -92,30 +93,44 @@ my-site/
 
 ## Writing Pages
 
-Pages are Python files that return YDNATL components:
+Pages are Python files that return nitro-ui components:
 
 ```python
 # src/pages/index.py
-from ydnatl import HTML, Head, Body, Div, H1, Paragraph
-from nitro import Page
+from nitro_ui import HTML, Head, Body, Div, H1, Paragraph, Title, Meta, Link
+from nitro import Page, load_data
+import sys
+from pathlib import Path
+
+# Add parent directory to path for component imports
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
 from components.header import Header
 from components.footer import Footer
 
 def render():
+    # Load data from JSON file
+    data = load_data("src/data/site.json")
+
     return Page(
-        title="Home",
+        title=f"Home - {data.site.name}",
         meta={
-            "description": "Welcome to my site",
+            "description": data.site.description,
             "keywords": "static, site, generator"
         },
         content=HTML(
-            Head(),
+            Head(
+                Meta(charset="UTF-8"),
+                Meta(name="viewport", content="width=device-width, initial-scale=1.0"),
+                Title(f"Home - {data.site.name}"),
+                Link(rel="stylesheet", href="/assets/styles/main.css"),
+            ),
             Body(
-                Header("My Website"),
+                Header(data.site.name),
                 Div(
                     H1("Welcome!"),
-                    Paragraph("This is built with Nitro + YDNATL!")
-                ).add_class("container"),
+                    Paragraph("This is built with Nitro + nitro-ui!")
+                ),
                 Footer()
             )
         )
@@ -124,116 +139,92 @@ def render():
 
 ## Creating Components
 
-Components are reusable YDNATL elements:
+Components are reusable nitro-ui elements:
 
 ```python
 # src/components/header.py
-from ydnatl import Header as HTMLHeader, Nav, A, Div, H1
+from nitro_ui import Header as UIHeader, Nav, HtmlLink, Div, H1
 
 def Header(site_name="My Site"):
-    return HTMLHeader(
-        Div(
-            H1(site_name).add_class("logo"),
-            Nav(
-                A("Home", href="/"),
-                A("About", href="/about.html"),
-            ).add_class("nav")
-        ).add_class("header-content")
-    ).add_class("header")
+    logo = H1(site_name)
+    logo.add_attribute("class", "logo")
+
+    nav = Nav(
+        HtmlLink("Home", href="/"),
+        HtmlLink("About", href="/about.html"),
+    )
+    nav.add_attribute("class", "nav")
+
+    header_content = Div(logo, nav)
+    header_content.add_attribute("class", "header-content")
+
+    header = UIHeader(header_content)
+    header.add_attribute("class", "header")
+
+    return header
 ```
 
 ## Working with Data
 
-Nitro provides `NitroDataStore`, a powerful and flexible way to manage JSON and YAML data in your projects.
+Nitro integrates with [nitro-datastore](https://github.com/nitrosh/nitro-datastore) for flexible data management.
 
 ### Quick Example
 
 ```python
-# src/pages/index.py
-from ydnatl import HTML, Head, Body, H1, Paragraph
-from nitro import Page, load_data
+from nitro import load_data
 
-def render():
-    # Load data from JSON file
-    data = load_data('data/site.json')
+# Load data from JSON file
+data = load_data('src/data/site.json')
 
-    # Access with dot notation
-    return Page(
-        title=data.site.name,
-        content=HTML(
-            Head(title=data.site.name),
-            Body(
-                H1(data.site.name),
-                Paragraph(data.site.tagline),
-                Paragraph(f"By {data.site.author}")
-            )
-        )
-    )
+# Access with dot notation
+print(data.site.name)
+print(data.site.tagline)
+
+# Dictionary access
+print(data['site']['name'])
+
+# Path-based access with defaults
+print(data.get('site.name', 'Default Name'))
 ```
 
-**data/site.json:**
+**src/data/site.json:**
 ```json
 {
   "site": {
     "name": "My Portfolio",
-    "tagline": "Building amazing things",
+    "description": "Building amazing things",
     "author": "Alice Developer"
-  }
+  },
+  "features": [
+    {"name": "Fast", "description": "Lightning fast builds"},
+    {"name": "Simple", "description": "Easy to use"}
+  ]
 }
-```
-
-### Multiple Access Patterns
-
-```python
-data = load_data('data/site.json')
-
-# Dot notation (recommended for static keys)
-data.site.name
-
-# Dictionary access
-data['site']['name']
-
-# Path-based access (great for dynamic keys, with defaults)
-data.get('site.name', 'Default Name')
 ```
 
 ### Loading from Directory
 
 ```python
 # Automatically merges all JSON files in the directory
-config = load_data('data/config/')
+config = load_data('src/data/config/')
 ```
-
-### See Also
-
-For comprehensive documentation on NitroDataStore, see [docs/DATASTORE.md](docs/DATASTORE.md).
 
 ## Commands
 
-### `nitro scaffold`
+### `nitro new`
 
 Create a new Nitro project.
 
 ```bash
-nitro scaffold PROJECT_NAME [OPTIONS]
+nitro new PROJECT_NAME [OPTIONS]
 
 Options:
   -t, --template [website|portfolio|blog]  Template to use (default: website)
   --no-git                                 Skip git initialization
   --no-install                             Skip dependency installation
-```
-
-### `nitro generate`
-
-Generate static HTML files from source files.
-
-```bash
-nitro generate [OPTIONS]
-
-Options:
-  -w, --watch                Watch for changes and regenerate
-  -o, --output PATH          Output directory (default: build/)
-  -v, --verbose              Verbose output
+  -v, --verbose                            Enable verbose output
+  --debug                                  Enable debug mode with full tracebacks
+  --log-file PATH                          Write logs to a file
 ```
 
 ### `nitro serve`
@@ -247,6 +238,9 @@ Options:
   -p, --port INTEGER        Port number (default: 3000)
   -h, --host TEXT          Host address (default: localhost)
   --no-reload              Disable live reload
+  -v, --verbose            Enable verbose output
+  --debug                  Enable debug mode with full tracebacks
+  --log-file PATH          Write logs to a file
 ```
 
 The server automatically generates the site if the build directory is empty, watches for file changes, and reloads the browser when changes are detected.
@@ -263,6 +257,10 @@ Options:
   --optimize/--no-optimize Optimize images and assets (default: enabled)
   -o, --output PATH        Output directory (default: build/)
   --clean                  Clean build directory before building
+  -v, --verbose            Enable verbose output
+  -q, --quiet              Only show errors and final summary
+  --debug                  Enable debug mode with full tracebacks
+  --log-file PATH          Write logs to a file
 ```
 
 Creates an optimized production build with:
@@ -272,35 +270,6 @@ Creates an optimized production build with:
 - SEO-friendly robots.txt
 - Asset manifest with file hashes
 - Build statistics and summary
-
-### `nitro test`
-
-Run quality checks on your site.
-
-```bash
-nitro test [OPTIONS]
-
-Options:
-  -c, --coverage           Generate coverage report
-  -w, --watch              Watch mode
-  -t, --type [all|validation|accessibility|links|performance]
-```
-
-*Coming soon!*
-
-### `nitro docs`
-
-Generate documentation for your site.
-
-```bash
-nitro docs [OPTIONS]
-
-Options:
-  -f, --format [html|markdown]  Output format (default: html)
-  -o, --output PATH             Output directory (default: docs/)
-```
-
-*Coming soon!*
 
 ## Configuration
 
@@ -334,37 +303,49 @@ config = Config(
     metadata={
         "author": "Your Name",
         "description": "Site description"
-    }
+    },
+
+    # Plugins
+    plugins=[]
 )
 ```
 
 ## Plugin System
 
-Extend Nitro with plugins. Create a plugin by extending the `NitroPlugin` class:
+Nitro uses [nitro-dispatch](https://github.com/nitrosh/nitro-dispatch) for its plugin system. Create a plugin by extending `NitroPlugin`:
 
 ```python
-from nitro.plugins import NitroPlugin
+# src/plugins/my_plugin.py
+from nitro.plugins import NitroPlugin, hook
 
 class MyPlugin(NitroPlugin):
     name = "my-plugin"
     version = "1.0.0"
 
-    def on_pre_generate(self, context):
-        # Called before generation
-        pass
+    @hook("nitro.pre_build")
+    def on_pre_build(self, context):
+        # Called before build starts
+        print(f"Building to {context['build_dir']}")
 
-    def on_post_generate(self, context, output):
-        # Called after generation, can modify output
-        return output
+    @hook("nitro.post_build")
+    def on_post_build(self, context):
+        # Called after build completes
+        print(f"Build complete! {context['stats']['count']} files generated")
 ```
+
+Available hooks:
+- `nitro.init` - Plugin initialization
+- `nitro.pre_generate` - Before page generation
+- `nitro.post_generate` - After page generation (can modify output)
+- `nitro.pre_build` - Before production build
+- `nitro.post_build` - After production build
 
 Register plugins in `nitro.config.py`:
 
 ```python
 config = Config(
     plugins=[
-        "nitro-markdown",
-        "nitro-sitemap"
+        "my_plugin.MyPlugin",
     ]
 )
 ```
@@ -372,43 +353,42 @@ config = Config(
 ## Requirements
 
 - Python 3.8+
-- YDNATL 1.0.0+
+- nitro-ui
+- nitro-datastore
+- nitro-dispatch
 
 ## Development
 
 ### Setting Up Development Environment
 
 ```bash
-git clone https://github.com/nitro-sh/nitro-cli.git
+git clone https://github.com/nitrosh/nitro-cli.git
 cd nitro-cli
-pip install -e .
+python -m venv .venv
+source .venv/bin/activate
+pip install -e ".[dev]"
 ```
 
 ### Running Tests
-
-*Coming soon!*
 
 ```bash
 pytest
 ```
 
-## Roadmap
+### Code Quality
 
-- [x] Core CLI framework
-- [x] Scaffold command with templates
-- [x] Generate command with YDNATL rendering
-- [x] Watch mode for automatic regeneration
-- [x] Serve command with hot reload
-- [x] WebSocket-based live reload
-- [x] Build command with optimization
-- [x] HTML/CSS minification
-- [x] Image optimization
-- [x] Sitemap generation
-- [x] NitroDataStore for flexible data management
-- [ ] Test command with validators
-- [ ] Docs command
-- [ ] Plugin system
-- [ ] Deployment integrations
+```bash
+flake8 src/
+black src/
+```
+
+## Ecosystem
+
+Nitro CLI is part of the Nitro ecosystem:
+
+- [nitro-ui](https://github.com/nitrosh/nitro-ui) - Python HTML generation library
+- [nitro-datastore](https://github.com/nitrosh/nitro-datastore) - Flexible data loading with dot notation
+- [nitro-dispatch](https://github.com/nitrosh/nitro-dispatch) - Plugin system and event hooks
 
 ## Contributing
 
@@ -418,13 +398,7 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 MIT License - see [LICENSE](LICENSE) for details.
 
-## Learn More
-
-- [YDNATL Documentation](https://github.com/sn/ydnatl)
-- [Project Plan](project-plan.md)
-
 ## Support
 
 If you encounter any issues or have questions:
-- [GitHub Issues](https://github.com/nitro-sh/nitro-cli/issues)
-- [Documentation](https://nitro-cli.readthedocs.io)
+- [GitHub Issues](https://github.com/nitrosh/nitro-cli/issues)

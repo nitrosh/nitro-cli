@@ -90,6 +90,15 @@ class LiveReloadServer:
         """
         file_path = self.build_dir / path
 
+        # Security: Prevent path traversal attacks
+        try:
+            resolved_path = file_path.resolve()
+            build_dir_resolved = self.build_dir.resolve()
+            if not resolved_path.is_relative_to(build_dir_resolved):
+                return web.Response(text="Forbidden", status=403)
+        except (ValueError, OSError):
+            return web.Response(text="Forbidden", status=403)
+
         if not file_path.exists():
             # Try without .html
             if file_path.suffix == ".html":
@@ -161,6 +170,9 @@ class LiveReloadServer:
                     error(f"WebSocket error: {ws.exception()}")
         finally:
             self.websockets.discard(ws)
+            # Explicitly close the WebSocket connection
+            if not ws.closed:
+                await ws.close()
             info(f"Client disconnected (total: {len(self.websockets)})")
 
         return ws
@@ -219,8 +231,9 @@ class LiveReloadServer:
         message = '{"type": "reload"}'
 
         # Send reload message to all connected clients
+        # Copy the set to avoid modification during iteration (race condition)
         dead_sockets = set()
-        for ws in self.websockets:
+        for ws in list(self.websockets):
             try:
                 await ws.send_str(message)
             except Exception:
@@ -245,7 +258,18 @@ class LiveReloadServer:
             info("Live reload enabled")
 
     async def stop(self) -> None:
-        """Stop the server."""
+        """Stop the server gracefully."""
+        # Close all WebSocket connections first
+        if self.websockets:
+            for ws in list(self.websockets):
+                try:
+                    if not ws.closed:
+                        await ws.close(code=1001, message=b"Server shutting down")
+                except Exception:
+                    pass
+            self.websockets.clear()
+
+        # Cleanup the runner (stops accepting new connections)
         if self.runner:
             await self.runner.cleanup()
             info("Server stopped")

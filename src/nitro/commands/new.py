@@ -1,4 +1,4 @@
-"""Scaffold command for creating new Nitro projects."""
+"""Command for creating new Nitro projects."""
 
 import shutil
 import subprocess
@@ -27,7 +27,7 @@ from ..utils import logger, LogLevel, info, warning, verbose, configure
 )
 @click.option("--debug", is_flag=True, help="Enable debug mode with full tracebacks")
 @click.option("--log-file", type=click.Path(), help="Write logs to a file")
-def scaffold(project_name, template, no_git, no_install, verbose_flag, debug, log_file):
+def new(project_name, template, no_git, no_install, verbose_flag, debug, log_file):
     """
     Create a new Nitro project.
 
@@ -43,7 +43,7 @@ def scaffold(project_name, template, no_git, no_install, verbose_flag, debug, lo
 
     try:
         # Show banner
-        logger.banner("Project Scaffold")
+        logger.banner("New Project")
         logger.start_timer()
 
         project_path = Path.cwd() / project_name
@@ -97,21 +97,26 @@ def scaffold(project_name, template, no_git, no_install, verbose_flag, debug, lo
             if not no_git:
                 progress.update(task, description="Initializing git repository...")
                 try:
-                    subprocess.run(
+                    result = subprocess.run(
                         ["git", "init"],
                         cwd=project_path,
                         check=True,
                         capture_output=True,
+                        text=True,
                     )
                     verbose("Initialized git repository")
-                except (subprocess.CalledProcessError, FileNotFoundError):
+                    if verbose_flag and result.stdout:
+                        verbose(f"  {result.stdout.strip()}")
+                except subprocess.CalledProcessError as e:
+                    warning(f"Git initialization failed: {e.stderr or e}")
+                except FileNotFoundError:
                     warning("Git initialization failed (is git installed?)")
 
             # Install dependencies
             if not no_install:
                 progress.update(task, description="Installing dependencies...")
                 try:
-                    subprocess.run(
+                    result = subprocess.run(
                         [
                             sys.executable,
                             "-m",
@@ -123,12 +128,22 @@ def scaffold(project_name, template, no_git, no_install, verbose_flag, debug, lo
                         cwd=project_path,
                         check=True,
                         capture_output=True,
+                        text=True,
                     )
                     verbose("Dependencies installed successfully")
-                except subprocess.CalledProcessError:
+                    if verbose_flag and result.stdout:
+                        # Show only summary, not entire output
+                        lines = result.stdout.strip().split("\n")
+                        for line in lines[-3:]:  # Last 3 lines
+                            if line.strip():
+                                verbose(f"  {line.strip()}")
+                except subprocess.CalledProcessError as e:
+                    error_msg = e.stderr or str(e)
                     warning(
-                        "Failed to install dependencies. Install manually with: pip install -r requirements.txt"
+                        f"Failed to install dependencies: {error_msg[:100]}..."
+                        if len(error_msg) > 100 else f"Failed to install dependencies: {error_msg}"
                     )
+                    warning("Install manually with: pip install -r requirements.txt")
 
             progress.remove_task(task)
 
@@ -157,6 +172,10 @@ def copy_template(src: Path, dst: Path, verbose_mode: bool = False) -> int:
 
     Returns:
         Number of files copied
+
+    Raises:
+        FileNotFoundError: If template not found
+        OSError: If file copy fails
     """
     if not src.exists():
         raise FileNotFoundError(f"Template not found: {src}")
@@ -166,11 +185,16 @@ def copy_template(src: Path, dst: Path, verbose_mode: bool = False) -> int:
         if item.is_file():
             relative = item.relative_to(src)
             dest_file = dst / relative
-            dest_file.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(item, dest_file)
-            count += 1
-            if verbose_mode:
-                verbose(f"  {relative}")
+            try:
+                dest_file.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(item, dest_file)
+                count += 1
+                if verbose_mode:
+                    verbose(f"  {relative}")
+            except PermissionError as e:
+                raise OSError(f"Permission denied copying {relative}: {e}") from e
+            except OSError as e:
+                raise OSError(f"Failed to copy {relative}: {e}") from e
 
     return count
 
