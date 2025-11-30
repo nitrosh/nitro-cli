@@ -45,7 +45,8 @@ class Renderer:
             List of parameter names
         """
         import re
-        params = re.findall(r'\[(\w+)\]', str(page_path))
+
+        params = re.findall(r"\[(\w+)\]", str(page_path))
         return params
 
     def render_dynamic_page(
@@ -126,11 +127,15 @@ class Renderer:
                             html = self._post_process(html)
 
                         # Determine output path
-                        output_name = self._get_dynamic_output_name(page_path, path_params)
+                        output_name = self._get_dynamic_output_name(
+                            page_path, path_params
+                        )
                         results.append((output_name, html))
 
                     except Exception as e:
-                        error(f"Error rendering {page_path} with params {path_params}: {e}")
+                        error(
+                            f"Error rendering {page_path} with params {path_params}: {e}"
+                        )
 
             finally:
                 if spec.name in sys.modules:
@@ -168,7 +173,7 @@ class Renderer:
                 output_name = output_name.replace(f"[{key}]", str(value))
         else:
             # Single param - replace all brackets
-            output_name = re.sub(r'\[\w+\]', str(params), stem)
+            output_name = re.sub(r"\[\w+\]", str(params), stem)
 
         return f"{output_name}.html"
 
@@ -244,7 +249,7 @@ class Renderer:
             # Handle syntax errors with precise location
             logger.code_error(
                 title="Syntax Error",
-                message=str(e.msg) if hasattr(e, 'msg') else str(e),
+                message=str(e.msg) if hasattr(e, "msg") else str(e),
                 file_path=str(e.filename) if e.filename else str(page_path),
                 line=e.lineno or 1,
                 column=e.offset,
@@ -255,6 +260,7 @@ class Renderer:
         except NameError as e:
             # Handle name errors with suggestions
             import traceback
+
             tb = traceback.extract_tb(e.__traceback__)
             if tb:
                 last_frame = tb[-1]
@@ -274,6 +280,7 @@ class Renderer:
         except ImportError as e:
             # Handle import errors
             import traceback
+
             tb = traceback.extract_tb(e.__traceback__)
             frame = tb[-1] if tb else None
             logger.code_error(
@@ -288,6 +295,7 @@ class Renderer:
         except AttributeError as e:
             # Handle attribute errors
             import traceback
+
             tb = traceback.extract_tb(e.__traceback__)
             if tb:
                 last_frame = tb[-1]
@@ -305,6 +313,7 @@ class Renderer:
         except Exception as e:
             # Generic error handling with traceback extraction
             import traceback
+
             tb = traceback.extract_tb(e.__traceback__)
 
             # Find the most relevant frame (prefer frames in the page file)
@@ -349,11 +358,52 @@ class Renderer:
 
         # Common nitro-ui elements
         common_names = [
-            "HTML", "Head", "Body", "Div", "Span", "H1", "H2", "H3", "H4", "H5", "H6",
-            "P", "Paragraph", "A", "Link", "Img", "Form", "Input", "Button", "Label",
-            "Select", "Textarea", "Option", "Table", "Tr", "Td", "Th", "Ul", "Ol", "Li",
-            "Nav", "Header", "Footer", "Section", "Article", "Main", "Aside", "Title",
-            "Meta", "Script", "Style", "Strong", "Em", "Fragment", "Page", "load_data",
+            "HTML",
+            "Head",
+            "Body",
+            "Div",
+            "Span",
+            "H1",
+            "H2",
+            "H3",
+            "H4",
+            "H5",
+            "H6",
+            "P",
+            "Paragraph",
+            "A",
+            "Link",
+            "Img",
+            "Form",
+            "Input",
+            "Button",
+            "Label",
+            "Select",
+            "Textarea",
+            "Option",
+            "Table",
+            "Tr",
+            "Td",
+            "Th",
+            "Ul",
+            "Ol",
+            "Li",
+            "Nav",
+            "Header",
+            "Footer",
+            "Section",
+            "Article",
+            "Main",
+            "Aside",
+            "Title",
+            "Meta",
+            "Script",
+            "Style",
+            "Strong",
+            "Em",
+            "Fragment",
+            "Page",
+            "load_data",
             "Config",
         ]
 
@@ -364,7 +414,9 @@ class Renderer:
             undefined_name = error_msg[start:end]
 
             # Find similar names
-            matches = difflib.get_close_matches(undefined_name, common_names, n=1, cutoff=0.6)
+            matches = difflib.get_close_matches(
+                undefined_name, common_names, n=1, cutoff=0.6
+            )
             if matches:
                 return f"Did you mean '{matches[0]}'?"
 

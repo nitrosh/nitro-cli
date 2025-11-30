@@ -25,4 +25,15 @@ deploy: Command
 test: Command
 docs: Command
 
-__all__ = ["new", "serve", "dev", "build", "preview", "clean", "info", "deploy", "test", "docs"]
+__all__ = [
+    "new",
+    "serve",
+    "dev",
+    "build",
+    "preview",
+    "clean",
+    "info",
+    "deploy",
+    "test",
+    "docs",
+]

@@ -1,7 +1,6 @@
 """Main CLI entry point for Nitro."""
 
 import click
-from pathlib import Path
 from rich.console import Console
 from rich.panel import Panel
 from rich.text import Text

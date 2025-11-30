@@ -16,11 +16,7 @@ def Header(site_name="My Website"):
     logo = H1(site_name, class_name="logo")
 
     # Create navigation
-    nav = Nav(
-        A("Home", href="/"),
-        A("About", href="/about.html"),
-        class_name="nav"
-    )
+    nav = Nav(A("Home", href="/"), A("About", href="/about.html"), class_name="nav")
 
     # Create header content wrapper
     header_content = Div(logo, nav, class_name="header-content")

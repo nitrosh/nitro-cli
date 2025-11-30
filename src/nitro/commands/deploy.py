@@ -9,13 +9,16 @@ import click
 
 from ..core.config import load_config
 from ..core.project import get_project_root
-from ..utils import logger, info, success, error, warning
+from ..utils import logger, info, success, error
 
 
 @click.command()
 @click.option(
-    "--platform", "-p",
-    type=click.Choice(["auto", "netlify", "vercel", "cloudflare"], case_sensitive=False),
+    "--platform",
+    "-p",
+    type=click.Choice(
+        ["auto", "netlify", "vercel", "cloudflare"], case_sensitive=False
+    ),
     default="auto",
     help="Deployment platform (auto-detect if not specified)",
 )
@@ -48,9 +51,12 @@ def deploy(platform, build, prod, verbose):
     if build:
         info("Building site for production...")
         from .build import build as build_cmd
+
         ctx = click.Context(build_cmd)
         try:
-            ctx.invoke(build_cmd, minify=True, optimize=True, fingerprint=True, quiet=True)
+            ctx.invoke(
+                build_cmd, minify=True, optimize=True, fingerprint=True, quiet=True
+            )
         except SystemExit as e:
             if e.code != 0:
                 error("Build failed, aborting deployment")
@@ -197,7 +203,7 @@ def _deploy_vercel(build_dir: Path, prod: bool, verbose: bool):
             success("Deployment successful!")
             if not verbose and result.stdout:
                 # The URL is usually the last non-empty line
-                lines = [l.strip() for l in result.stdout.split("\n") if l.strip()]
+                lines = [ln.strip() for ln in result.stdout.split("\n") if ln.strip()]
                 if lines:
                     info(f"URL: {lines[-1]}")
         else:
@@ -232,7 +238,14 @@ def _deploy_cloudflare(build_dir: Path, prod: bool, verbose: bool):
     project_root = get_project_root() or Path.cwd()
     project_name = project_root.name.lower().replace("_", "-").replace(" ", "-")
 
-    cmd = ["wrangler", "pages", "deploy", str(build_dir), "--project-name", project_name]
+    cmd = [
+        "wrangler",
+        "pages",
+        "deploy",
+        str(build_dir),
+        "--project-name",
+        project_name,
+    ]
 
     if prod:
         cmd.extend(["--branch", "main"])

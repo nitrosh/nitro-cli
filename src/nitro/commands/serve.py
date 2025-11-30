@@ -21,7 +21,9 @@ from ..utils import logger, LogLevel, info, success, error, configure
     "--host", "-h", default="localhost", help="Host address for the development server"
 )
 @click.option("--no-reload", is_flag=True, help="Disable live reload")
-@click.option("--open", "-o", "open_browser", is_flag=True, help="Open browser automatically")
+@click.option(
+    "--open", "-o", "open_browser", is_flag=True, help="Open browser automatically"
+)
 @click.option("--verbose", "-v", is_flag=True, help="Enable verbose output")
 @click.option("--debug", is_flag=True, help="Enable debug mode with full tracebacks")
 @click.option("--log-file", type=click.Path(), help="Write logs to a file")
@@ -53,7 +55,11 @@ def serve(port, host, no_reload, open_browser, verbose, debug, log_file):
 
 
 async def serve_async(
-    port: int, host: str, enable_reload: bool, open_browser: bool = False, debug_mode: bool = False
+    port: int,
+    host: str,
+    enable_reload: bool,
+    open_browser: bool = False,
+    debug_mode: bool = False,
 ):
     """Async serve implementation.
 
@@ -105,6 +111,7 @@ async def serve_async(
     # Open browser if requested
     if open_browser:
         import webbrowser
+
         url = f"http://{host}:{port}"
         webbrowser.open(url)
         info(f"Opened browser at {url}")

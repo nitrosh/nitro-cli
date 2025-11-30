@@ -141,7 +141,8 @@ def new(project_name, template, no_git, no_install, verbose_flag, debug, log_fil
                     error_msg = e.stderr or str(e)
                     warning(
                         f"Failed to install dependencies: {error_msg[:100]}..."
-                        if len(error_msg) > 100 else f"Failed to install dependencies: {error_msg}"
+                        if len(error_msg) > 100
+                        else f"Failed to install dependencies: {error_msg}"
                     )
                     warning("Install manually with: pip install -r requirements.txt")
 

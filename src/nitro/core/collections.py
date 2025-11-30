@@ -7,7 +7,7 @@ Similar to Astro's content collections - define typed collections of content
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Type, Union
+from typing import Any, Callable, Dict, List, Optional, Union
 import re
 
 from ..utils import error, warning, info
@@ -69,16 +69,28 @@ class StringField(SchemaField):
             value = str(value)
 
         if len(value) < self.min_length:
-            return False, None, f"'{field_name}' must be at least {self.min_length} characters"
+            return (
+                False,
+                None,
+                f"'{field_name}' must be at least {self.min_length} characters",
+            )
 
         if self.max_length and len(value) > self.max_length:
-            return False, None, f"'{field_name}' must be at most {self.max_length} characters"
+            return (
+                False,
+                None,
+                f"'{field_name}' must be at most {self.max_length} characters",
+            )
 
         if self.pattern and not self.pattern.match(value):
             return False, None, f"'{field_name}' does not match required pattern"
 
         if self.choices and value not in self.choices:
-            return False, None, f"'{field_name}' must be one of: {', '.join(self.choices)}"
+            return (
+                False,
+                None,
+                f"'{field_name}' must be one of: {', '.join(self.choices)}",
+            )
 
         return True, value, None
 
@@ -219,16 +231,26 @@ class ListField(SchemaField):
             value = [value]
 
         if len(value) < self.min_items:
-            return False, None, f"'{field_name}' must have at least {self.min_items} items"
+            return (
+                False,
+                None,
+                f"'{field_name}' must have at least {self.min_items} items",
+            )
 
         if self.max_items and len(value) > self.max_items:
-            return False, None, f"'{field_name}' must have at most {self.max_items} items"
+            return (
+                False,
+                None,
+                f"'{field_name}' must have at most {self.max_items} items",
+            )
 
         # Validate each item if item_type is specified
         if self.item_type:
             validated_items = []
             for i, item in enumerate(value):
-                is_valid, coerced, err = self.item_type.validate(item, f"{field_name}[{i}]")
+                is_valid, coerced, err = self.item_type.validate(
+                    item, f"{field_name}[{i}]"
+                )
                 if not is_valid:
                     return False, None, err
                 validated_items.append(coerced)
@@ -257,7 +279,11 @@ class EnumField(SchemaField):
             return True, self.default, None
 
         if value not in self.choices:
-            return False, None, f"'{field_name}' must be one of: {', '.join(self.choices)}"
+            return (
+                False,
+                None,
+                f"'{field_name}' must be one of: {', '.join(self.choices)}",
+            )
 
         return True, value, None
 
@@ -483,7 +509,11 @@ class ContentCollection:
         """
         if isinstance(key, str):
             field_name = key
-            key = lambda e: e.data.get(field_name, "")
+
+            def get_field(e):
+                return e.data.get(field_name, "")
+
+            key = get_field
 
         return sorted(self.entries, key=key, reverse=reverse)
 
@@ -496,6 +526,7 @@ class ContentCollection:
         Returns:
             Filtered list of entries
         """
+
         def matches(entry: CollectionEntry) -> bool:
             for field_name, expected in conditions.items():
                 actual = entry.data.get(field_name)
@@ -664,11 +695,21 @@ def blog_schema(**overrides) -> CollectionSchema:
         "title": StringField(required=True, description="Post title"),
         "date": DateField(required=True, description="Publication date"),
         "author": StringField(required=False, default="", description="Author name"),
-        "description": StringField(required=False, default="", max_length=160, description="Meta description"),
-        "tags": ListField(item_type=StringField(), required=False, description="Post tags"),
-        "draft": BooleanField(required=False, default=False, description="Draft status"),
-        "featured": BooleanField(required=False, default=False, description="Featured post"),
-        "image": StringField(required=False, default="", description="Featured image URL"),
+        "description": StringField(
+            required=False, default="", max_length=160, description="Meta description"
+        ),
+        "tags": ListField(
+            item_type=StringField(), required=False, description="Post tags"
+        ),
+        "draft": BooleanField(
+            required=False, default=False, description="Draft status"
+        ),
+        "featured": BooleanField(
+            required=False, default=False, description="Featured post"
+        ),
+        "image": StringField(
+            required=False, default="", description="Featured image URL"
+        ),
     }
     fields.update(overrides)
     return CollectionSchema(fields=fields)
@@ -685,10 +726,16 @@ def docs_schema(**overrides) -> CollectionSchema:
     """
     fields = {
         "title": StringField(required=True, description="Page title"),
-        "description": StringField(required=False, default="", description="Page description"),
-        "order": NumberField(required=False, default=0, integer_only=True, description="Sort order"),
+        "description": StringField(
+            required=False, default="", description="Page description"
+        ),
+        "order": NumberField(
+            required=False, default=0, integer_only=True, description="Sort order"
+        ),
         "category": StringField(required=False, default="", description="Category"),
-        "sidebar": BooleanField(required=False, default=True, description="Show in sidebar"),
+        "sidebar": BooleanField(
+            required=False, default=True, description="Show in sidebar"
+        ),
     }
     fields.update(overrides)
     return CollectionSchema(fields=fields)

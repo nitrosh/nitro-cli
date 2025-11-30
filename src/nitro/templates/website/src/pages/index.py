@@ -57,7 +57,7 @@ def render():
         ),
         H2("Features"),
         features_list,
-        class_name="content"
+        class_name="content",
     )
 
     # Create container div

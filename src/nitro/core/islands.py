@@ -31,7 +31,7 @@ Usage in templates:
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Literal, Optional, Union
+from typing import Any, Dict, List, Literal, Optional
 import hashlib
 import json
 import re
@@ -117,7 +117,7 @@ class Island:
         if self.props:
             props_json = json.dumps(self.props, default=str)
             # Escape for HTML attribute
-            props_escaped = props_json.replace('"', '&quot;')
+            props_escaped = props_json.replace('"', "&quot;")
             attrs.append(f'data-props="{props_escaped}"')
 
         if self.media and self.client == "media":
@@ -125,7 +125,7 @@ class Island:
 
         attrs_str = " ".join(attrs)
 
-        return f'<div {attrs_str}>{inner_html}</div>'
+        return f"<div {attrs_str}>{inner_html}</div>"
 
     def __str__(self) -> str:
         return self.render()
@@ -135,7 +135,7 @@ def island(
     component: Any,
     name: Optional[str] = None,
     client: HydrationStrategy = "idle",
-    **props
+    **props,
 ) -> Island:
     """Create an island from a component.
 
@@ -249,9 +249,11 @@ class IslandProcessor:
         Returns:
             JavaScript code
         """
-        debug_code = "console.log('[Islands] Initializing...');" if self.config.debug else ""
+        debug_code = (
+            "console.log('[Islands] Initializing...');" if self.config.debug else ""
+        )
 
-        return f'''
+        return f"""
 (function() {{
   {debug_code}
 
@@ -379,7 +381,7 @@ class IslandProcessor:
     initIslands();
   }}
 }})();
-'''
+"""
 
     def process_html(
         self,
@@ -396,7 +398,7 @@ class IslandProcessor:
             Processed HTML
         """
         # Check if there are any islands
-        if 'data-island=' not in html_content:
+        if "data-island=" not in html_content:
             return html_content
 
         if not inject_script:
@@ -404,14 +406,11 @@ class IslandProcessor:
 
         # Generate and inject hydration script
         script = self.generate_hydration_script()
-        script_tag = f'<script>{script}</script>'
+        script_tag = f"<script>{script}</script>"
 
         # Inject before closing body tag
-        if '</body>' in html_content:
-            html_content = html_content.replace(
-                '</body>',
-                f'{script_tag}\n</body>'
-            )
+        if "</body>" in html_content:
+            html_content = html_content.replace("</body>", f"{script_tag}\n</body>")
         else:
             html_content += script_tag
 
@@ -428,15 +427,17 @@ class IslandProcessor:
         """
         pattern = re.compile(
             r'<div\s+data-island="([^"]+)"\s+data-island-id="([^"]+)"[^>]*>',
-            re.IGNORECASE
+            re.IGNORECASE,
         )
 
         islands = []
         for match in pattern.finditer(html_content):
-            islands.append({
-                "name": match.group(1),
-                "id": match.group(2),
-            })
+            islands.append(
+                {
+                    "name": match.group(1),
+                    "id": match.group(2),
+                }
+            )
 
         return islands
 
@@ -488,6 +489,7 @@ def client_component(
     Returns:
         Decorator function
     """
+
     def decorator(func):
         component_name = name or func.__name__.lower()
 

@@ -1,6 +1,6 @@
 """Generator for building static sites."""
 
-from typing import List, Optional, Tuple
+from typing import List, Optional
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import shutil
@@ -18,7 +18,6 @@ from rich.progress import (
     SpinnerColumn,
     TextColumn,
     BarColumn,
-    TaskProgressColumn,
     TimeElapsedColumn,
     MofNCompleteColumn,
 )
@@ -71,7 +70,9 @@ class Generator:
 
         return loader
 
-    def generate(self, verbose: bool = False, force: bool = False, parallel: bool = True) -> bool:
+    def generate(
+        self, verbose: bool = False, force: bool = False, parallel: bool = True
+    ) -> bool:
         """Generate the static site.
 
         Args:
@@ -128,7 +129,9 @@ class Generator:
         if self.cache and not force:
             components_dir = self.source_dir / "components"
             data_dir = self.source_dir / "data"
-            pages_to_build = self.cache.get_changed_pages(static_pages, components_dir, data_dir)
+            pages_to_build = self.cache.get_changed_pages(
+                static_pages, components_dir, data_dir
+            )
 
             if not pages_to_build and not dynamic_pages:
                 success("All pages are up to date (nothing to build)")
@@ -136,7 +139,9 @@ class Generator:
 
             skipped = len(static_pages) - len(pages_to_build)
             if skipped > 0:
-                info(f"Found {len(static_pages)} static page(s), {skipped} unchanged (cached)")
+                info(
+                    f"Found {len(static_pages)} static page(s), {skipped} unchanged (cached)"
+                )
             if pages_to_build:
                 info(f"Building {len(pages_to_build)} static page(s)")
         else:
@@ -166,7 +171,10 @@ class Generator:
 
             if use_parallel and len(pages_to_build) >= 4:
                 # Parallel generation
-                progress.update(task, description=f"[cyan]Generating {len(pages_to_build)} pages ({max_workers} workers)[/]")
+                progress.update(
+                    task,
+                    description=f"[cyan]Generating {len(pages_to_build)} pages ({max_workers} workers)[/]",
+                )
 
                 with ThreadPoolExecutor(max_workers=max_workers) as executor:
                     # Submit all page rendering tasks
@@ -202,9 +210,7 @@ class Generator:
                     progress.update(task, description=f"[cyan]{relative_path}[/]")
 
                     if verbose:
-                        logger.print(
-                            f"  Processing: {relative_path}"
-                        )
+                        logger.print(f"  Processing: {relative_path}")
 
                     html = self.renderer.render_page(page_path, self.project_root)
 
@@ -254,7 +260,9 @@ class Generator:
         # Show results for static pages
         if pages_to_build:
             if failed_pages:
-                success(f"Generated {success_count}/{len(pages_to_build)} static page(s)")
+                success(
+                    f"Generated {success_count}/{len(pages_to_build)} static page(s)"
+                )
                 for failed in failed_pages:
                     error(f"  Failed: {failed.relative_to(self.project_root)}")
             else:
@@ -268,7 +276,9 @@ class Generator:
                 relative_path = dynamic_page.relative_to(self.project_root)
                 info(f"Processing dynamic route: {relative_path}")
 
-                results = self.renderer.render_dynamic_page(dynamic_page, self.project_root)
+                results = self.renderer.render_dynamic_page(
+                    dynamic_page, self.project_root
+                )
 
                 for output_name, html in results:
                     if html:
@@ -285,7 +295,9 @@ class Generator:
                         dynamic_count += 1
 
                         if verbose:
-                            logger.print(f"  → {output_path.relative_to(self.project_root)}")
+                            logger.print(
+                                f"  → {output_path.relative_to(self.project_root)}"
+                            )
 
             if dynamic_count > 0:
                 success(f"Generated {dynamic_count} page(s) from dynamic routes")
@@ -368,9 +380,7 @@ class Generator:
                 output_path.write_text(html)
 
                 if verbose:
-                    logger.print(
-                        f"  → {output_path.relative_to(self.project_root)}"
-                    )
+                    logger.print(f"  → {output_path.relative_to(self.project_root)}")
 
                 return True
 
@@ -555,9 +565,11 @@ class Generator:
 
         tags_html = ""
         if doc.tags:
-            tags_html = '<div class="tags">' + "".join(
-                f'<span class="tag">{tag}</span>' for tag in doc.tags
-            ) + "</div>"
+            tags_html = (
+                '<div class="tags">'
+                + "".join(f'<span class="tag">{tag}</span>' for tag in doc.tags)
+                + "</div>"
+            )
 
         return f"""<!DOCTYPE html>
 <html lang="en">

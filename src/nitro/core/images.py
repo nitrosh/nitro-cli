@@ -10,12 +10,12 @@ Features:
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Dict, List, Optional
 import hashlib
 import json
 import re
 
-from ..utils import success, warning, error, info
+from ..utils import success, warning, error
 
 
 @dataclass
@@ -29,12 +29,14 @@ class ImageConfig:
     formats: List[str] = field(default_factory=lambda: ["avif", "webp", "original"])
 
     # Quality settings per format (0-100)
-    quality: Dict[str, int] = field(default_factory=lambda: {
-        "avif": 80,
-        "webp": 85,
-        "jpeg": 85,
-        "png": 85,
-    })
+    quality: Dict[str, int] = field(
+        default_factory=lambda: {
+            "avif": 80,
+            "webp": 85,
+            "jpeg": 85,
+            "png": 85,
+        }
+    )
 
     # Enable lazy loading
     lazy_load: bool = True
@@ -120,7 +122,8 @@ class ImageOptimizer:
         """Check if Pillow is available."""
         if self._pillow_available is None:
             try:
-                from PIL import Image
+                import PIL  # noqa: F401
+
                 self._pillow_available = True
             except ImportError:
                 self._pillow_available = False
@@ -132,6 +135,7 @@ class ImageOptimizer:
         if self._avif_available is None:
             try:
                 from PIL import Image
+
                 # Check for AVIF support
                 self._avif_available = "AVIF" in Image.registered_extensions().values()
             except ImportError:
@@ -189,12 +193,16 @@ class ImageOptimizer:
 
                 # Determine which sizes to generate
                 sizes_to_generate = [
-                    s for s in self.config.sizes
+                    s
+                    for s in self.config.sizes
                     if s <= original_width and s <= self.config.max_width
                 ]
 
                 # Always include original size if not in list
-                if original_width <= self.config.max_width and original_width not in sizes_to_generate:
+                if (
+                    original_width <= self.config.max_width
+                    and original_width not in sizes_to_generate
+                ):
                     sizes_to_generate.append(original_width)
 
                 sizes_to_generate.sort()
@@ -237,7 +245,9 @@ class ImageOptimizer:
                         resized.thumbnail((width, height), Image.Resampling.LANCZOS)
 
                         # Determine output filename
-                        out_name = f"{source_path.stem}-{width}w-{img_hash}.{output_format}"
+                        out_name = (
+                            f"{source_path.stem}-{width}w-{img_hash}.{output_format}"
+                        )
                         out_path = img_output_dir / out_name
 
                         # Save with appropriate settings
@@ -250,7 +260,9 @@ class ImageOptimizer:
                         else:
                             # Convert RGBA to RGB for JPEG
                             if pil_format == "jpeg" and resized.mode == "RGBA":
-                                background = Image.new("RGB", resized.size, (255, 255, 255))
+                                background = Image.new(
+                                    "RGB", resized.size, (255, 255, 255)
+                                )
                                 background.paste(resized, mask=resized.split()[3])
                                 resized = background
 
@@ -350,7 +362,7 @@ class ImageOptimizer:
             f'srcset="{fallback_srcset}" '
             f'sizes="{sizes_attr}" '
             f'alt="{alt}" '
-            f'{class_attr} {lazy_attr} '
+            f"{class_attr} {lazy_attr} "
             f'width="{optimized.original_width}" '
             f'height="{optimized.original_height}">'
         )
@@ -382,8 +394,7 @@ class ImageOptimizer:
 
         # Find all img tags
         img_pattern = re.compile(
-            r'<img\s+([^>]*?)src=["\']([^"\']+)["\']([^>]*?)/?>'
-            , re.IGNORECASE
+            r'<img\s+([^>]*?)src=["\']([^"\']+)["\']([^>]*?)/?>', re.IGNORECASE
         )
 
         def replace_img(match):
@@ -418,13 +429,19 @@ class ImageOptimizer:
                 return match.group(0)
 
             # Extract alt and class from original attributes
-            alt_match = re.search(r'alt=["\']([^"\']*)["\']', before_attrs + after_attrs)
+            alt_match = re.search(
+                r'alt=["\']([^"\']*)["\']', before_attrs + after_attrs
+            )
             alt = alt_match.group(1) if alt_match else ""
 
-            class_match = re.search(r'class=["\']([^"\']*)["\']', before_attrs + after_attrs)
+            class_match = re.search(
+                r'class=["\']([^"\']*)["\']', before_attrs + after_attrs
+            )
             css_class = class_match.group(1) if class_match else ""
 
-            sizes_match = re.search(r'sizes=["\']([^"\']*)["\']', before_attrs + after_attrs)
+            sizes_match = re.search(
+                r'sizes=["\']([^"\']*)["\']', before_attrs + after_attrs
+            )
             sizes = sizes_match.group(1) if sizes_match else None
 
             return self.generate_picture_element(optimized, alt, css_class, sizes)

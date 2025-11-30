@@ -16,6 +16,6 @@ def Footer():
             " and ",
             A("nitro-ui", href="https://github.com/nitrosh/nitro-ui", target="_blank"),
         ),
-        class_name="footer"
+        class_name="footer",
     )
     return footer_elem

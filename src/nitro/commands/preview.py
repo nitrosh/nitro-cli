@@ -10,17 +10,17 @@ import click
 from ..core.config import load_config
 from ..core.project import get_project_root
 from ..core.server import LiveReloadServer
-from ..utils import logger, LogLevel, info, success, error, warning, configure
+from ..utils import logger, LogLevel, info, error, warning, configure
 
 
 @click.command()
-@click.option(
-    "--port", "-p", default=4000, help="Port number for the preview server"
-)
+@click.option("--port", "-p", default=4000, help="Port number for the preview server")
 @click.option(
     "--host", "-h", default="localhost", help="Host address for the preview server"
 )
-@click.option("--open", "-o", "open_browser", is_flag=True, help="Open browser automatically")
+@click.option(
+    "--open", "-o", "open_browser", is_flag=True, help="Open browser automatically"
+)
 @click.option("--verbose", "-v", is_flag=True, help="Enable verbose output")
 @click.option("--debug", is_flag=True, help="Enable debug mode")
 @click.pass_context
@@ -49,7 +49,9 @@ def preview(ctx, port, host, open_browser, verbose, debug):
         sys.exit(1)
 
 
-async def preview_async(port: int, host: str, open_browser: bool, debug_mode: bool = False):
+async def preview_async(
+    port: int, host: str, open_browser: bool, debug_mode: bool = False
+):
     """Async preview implementation."""
     # Show banner
     logger.banner("Production Preview")
@@ -81,10 +83,7 @@ async def preview_async(port: int, host: str, open_browser: bool, debug_mode: bo
 
     # Initialize server (no live reload for preview)
     server = LiveReloadServer(
-        build_dir=build_dir,
-        host=host,
-        port=port,
-        enable_reload=False
+        build_dir=build_dir, host=host, port=port, enable_reload=False
     )
 
     # Start server
@@ -104,6 +103,7 @@ async def preview_async(port: int, host: str, open_browser: bool, debug_mode: bo
     # Open browser if requested
     if open_browser:
         import webbrowser
+
         url = f"http://{host}:{port}"
         webbrowser.open(url)
         info(f"Opened browser at {url}")

@@ -13,8 +13,12 @@ from ..utils import logger, info, success, warning, error
 @click.command()
 @click.option("--build", "clean_build", is_flag=True, help="Clean only build directory")
 @click.option("--cache", "clean_cache", is_flag=True, help="Clean only cache directory")
-@click.option("--all", "clean_all", is_flag=True, help="Clean everything (build + cache)")
-@click.option("--dry-run", is_flag=True, help="Show what would be deleted without deleting")
+@click.option(
+    "--all", "clean_all", is_flag=True, help="Clean everything (build + cache)"
+)
+@click.option(
+    "--dry-run", is_flag=True, help="Show what would be deleted without deleting"
+)
 @click.option("--verbose", "-v", is_flag=True, help="Enable verbose output")
 def clean(clean_build, clean_cache, clean_all, dry_run, verbose):
     """
@@ -87,7 +91,9 @@ def clean(clean_build, clean_cache, clean_all, dry_run, verbose):
     if dry_run:
         info(f"Total: {_format_size(total_size)} would be freed")
     elif cleaned_count > 0:
-        success(f"Cleaned {cleaned_count} director{'ies' if cleaned_count > 1 else 'y'}, freed {_format_size(total_size)}")
+        success(
+            f"Cleaned {cleaned_count} director{'ies' if cleaned_count > 1 else 'y'}, freed {_format_size(total_size)}"
+        )
     else:
         info("Nothing to clean")
 

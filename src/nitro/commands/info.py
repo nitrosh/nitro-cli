@@ -7,7 +7,6 @@ from pathlib import Path
 import click
 from rich.table import Table
 from rich.panel import Panel
-from rich.text import Text
 from rich.box import ROUNDED
 
 from ..core.config import load_config
@@ -49,7 +48,10 @@ def _output_rich(project_root):
     env_table.add_column("Value", style="cyan")
 
     env_table.add_row("Nitro CLI", f"v{__version__}")
-    env_table.add_row("Python", f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}")
+    env_table.add_row(
+        "Python",
+        f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
+    )
     env_table.add_row("Platform", platform.system())
     env_table.add_row("Architecture", platform.machine())
 
@@ -79,22 +81,28 @@ def _output_rich(project_root):
             if config.plugins:
                 proj_table.add_row("Plugins", ", ".join(config.plugins))
 
-            console.print(Panel(proj_table, title="[bold]Project[/]", border_style="green"))
+            console.print(
+                Panel(proj_table, title="[bold]Project[/]", border_style="green")
+            )
 
             # Directory stats
             _show_directory_stats(project_root, config)
         else:
-            console.print(Panel(
-                f"[dim]Project root:[/] {project_root}\n[yellow]No nitro.config.py found[/]",
-                title="[bold]Project[/]",
-                border_style="yellow"
-            ))
+            console.print(
+                Panel(
+                    f"[dim]Project root:[/] {project_root}\n[yellow]No nitro.config.py found[/]",
+                    title="[bold]Project[/]",
+                    border_style="yellow",
+                )
+            )
     else:
-        console.print(Panel(
-            "[yellow]Not inside a Nitro project[/]\n[dim]Run 'nitro new <name>' to create one[/]",
-            title="[bold]Project[/]",
-            border_style="yellow"
-        ))
+        console.print(
+            Panel(
+                "[yellow]Not inside a Nitro project[/]\n[dim]Run 'nitro new <name>' to create one[/]",
+                title="[bold]Project[/]",
+                border_style="yellow",
+            )
+        )
 
     # Dependencies
     _show_dependencies()
@@ -119,18 +127,26 @@ def _show_directory_stats(project_root: Path, config):
         components_dir = source_dir / "components"
 
         if pages_dir.exists():
-            page_count = len(list(pages_dir.rglob("*.py"))) - len(list(pages_dir.rglob("__init__.py")))
+            page_count = len(list(pages_dir.rglob("*.py"))) - len(
+                list(pages_dir.rglob("__init__.py"))
+            )
             stats_table.add_row("Pages", str(page_count), _format_dir_size(pages_dir))
 
         if components_dir.exists():
-            comp_count = len(list(components_dir.rglob("*.py"))) - len(list(components_dir.rglob("__init__.py")))
-            stats_table.add_row("Components", str(comp_count), _format_dir_size(components_dir))
+            comp_count = len(list(components_dir.rglob("*.py"))) - len(
+                list(components_dir.rglob("__init__.py"))
+            )
+            stats_table.add_row(
+                "Components", str(comp_count), _format_dir_size(components_dir)
+            )
 
     # Build directory
     build_dir = project_root / config.build_dir
     if build_dir.exists():
         html_count = len(list(build_dir.rglob("*.html")))
-        stats_table.add_row("Build (HTML)", str(html_count), _format_dir_size(build_dir))
+        stats_table.add_row(
+            "Build (HTML)", str(html_count), _format_dir_size(build_dir)
+        )
 
     # Cache directory
     cache_dir = project_root / ".nitro"
@@ -139,7 +155,9 @@ def _show_directory_stats(project_root: Path, config):
         stats_table.add_row("Cache", str(cache_files), _format_dir_size(cache_dir))
 
     if stats_table.row_count > 0:
-        console.print(Panel(stats_table, title="[bold]Statistics[/]", border_style="cyan"))
+        console.print(
+            Panel(stats_table, title="[bold]Statistics[/]", border_style="cyan")
+        )
 
 
 def _show_dependencies():
@@ -173,7 +191,9 @@ def _show_dependencies():
         except ImportError:
             deps_table.add_row(display_name, "-", "[red]✗ missing[/]")
 
-    console.print(Panel(deps_table, title="[bold]Dependencies[/]", border_style="magenta"))
+    console.print(
+        Panel(deps_table, title="[bold]Dependencies[/]", border_style="magenta")
+    )
 
 
 def _output_json(project_root):

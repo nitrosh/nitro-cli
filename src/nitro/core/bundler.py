@@ -220,20 +220,24 @@ class Bundler:
             item_date = format_rss_date(item.get("pubDate", datetime.now()))
             item_guid = item.get("guid", item_link)
 
-            xml_lines.extend([
-                "    <item>",
-                f"      <title>{item_title}</title>",
-                f"      <link>{item_link}</link>",
-                f"      <description>{item_desc}</description>",
-                f"      <pubDate>{item_date}</pubDate>",
-                f"      <guid>{item_guid}</guid>",
-                "    </item>",
-            ])
+            xml_lines.extend(
+                [
+                    "    <item>",
+                    f"      <title>{item_title}</title>",
+                    f"      <link>{item_link}</link>",
+                    f"      <description>{item_desc}</description>",
+                    f"      <pubDate>{item_date}</pubDate>",
+                    f"      <guid>{item_guid}</guid>",
+                    "    </item>",
+                ]
+            )
 
-        xml_lines.extend([
-            "  </channel>",
-            "</rss>",
-        ])
+        xml_lines.extend(
+            [
+                "  </channel>",
+                "</rss>",
+            ]
+        )
 
         output_path.write_text("\n".join(xml_lines))
         success(f"Generated RSS feed with {len(items)} item(s)")
@@ -288,18 +292,22 @@ class Bundler:
             item_title = html.escape(item.get("title", "Untitled"))
             item_link = item.get("link", base_url)
             item_summary = html.escape(item.get("summary", item.get("description", "")))
-            item_updated = format_atom_date(item.get("updated", item.get("pubDate", datetime.now())))
+            item_updated = format_atom_date(
+                item.get("updated", item.get("pubDate", datetime.now()))
+            )
             item_id = item.get("id", item.get("guid", item_link))
 
-            xml_lines.extend([
-                "  <entry>",
-                f"    <title>{item_title}</title>",
-                f'    <link href="{item_link}"/>',
-                f"    <id>{item_id}</id>",
-                f"    <updated>{item_updated}</updated>",
-                f"    <summary>{item_summary}</summary>",
-                "  </entry>",
-            ])
+            xml_lines.extend(
+                [
+                    "  <entry>",
+                    f"    <title>{item_title}</title>",
+                    f'    <link href="{item_link}"/>',
+                    f"    <id>{item_id}</id>",
+                    f"    <updated>{item_updated}</updated>",
+                    f"    <summary>{item_summary}</summary>",
+                    "  </entry>",
+                ]
+            )
 
         xml_lines.append("</feed>")
 
@@ -363,8 +371,6 @@ Sitemap: {sitemap_url}
         Returns:
             Dictionary mapping original paths to new paths
         """
-        import re
-
         # Find all CSS and JS files
         asset_files = []
         for pattern in ["*.css", "*.js"]:

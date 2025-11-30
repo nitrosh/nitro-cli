@@ -29,7 +29,7 @@ def render():
             "The file path determines the URL - for example, src/pages/blog/post.py "
             "becomes /blog/post.html"
         ),
-        class_name="content"
+        class_name="content",
     )
 
     # Create container div

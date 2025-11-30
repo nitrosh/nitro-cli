@@ -45,7 +45,20 @@ from ..utils import logger, LogLevel, info, success, verbose, configure
 @click.option("--quiet", "-q", is_flag=True, help="Only show errors and final summary")
 @click.option("--debug", is_flag=True, help="Enable debug mode with full tracebacks")
 @click.option("--log-file", type=click.Path(), help="Write logs to a file")
-def build(minify, optimize, responsive, fingerprint, islands, output, clean, force, verbose_flag, quiet, debug, log_file):
+def build(
+    minify,
+    optimize,
+    responsive,
+    fingerprint,
+    islands,
+    output,
+    clean,
+    force,
+    verbose_flag,
+    quiet,
+    debug,
+    log_file,
+):
     """
     Build the site for production.
 
@@ -130,11 +143,13 @@ def build(minify, optimize, responsive, fingerprint, islands, output, clean, for
         # Generate responsive images with WebP/AVIF
         if responsive:
             logger.section("Generating Responsive Images")
-            img_optimizer = ImageOptimizer(ImageConfig(
-                formats=["avif", "webp", "original"],
-                sizes=[320, 640, 768, 1024, 1280, 1920],
-                lazy_load=True,
-            ))
+            img_optimizer = ImageOptimizer(
+                ImageConfig(
+                    formats=["avif", "webp", "original"],
+                    sizes=[320, 640, 768, 1024, 1280, 1920],
+                    lazy_load=True,
+                )
+            )
 
             # Process all HTML files to replace img tags with picture elements
             html_files = list(generator.build_dir.rglob("*.html"))
@@ -169,7 +184,7 @@ def build(minify, optimize, responsive, fingerprint, islands, output, clean, for
             islands_count = 0
             for html_file in html_files:
                 content = html_file.read_text()
-                if 'data-island=' in content:
+                if "data-island=" in content:
                     processed = island_processor.process_html(content)
                     html_file.write_text(processed)
                     islands_count += 1

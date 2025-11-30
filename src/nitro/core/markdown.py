@@ -92,13 +92,16 @@ class MarkdownProcessor:
         try:
             import markdown
             import frontmatter as fm
+
             self._markdown = markdown
             self._frontmatter = fm
             return True
         except ImportError:
             return False
 
-    def parse(self, content: str, path: Optional[Path] = None) -> Optional[MarkdownDocument]:
+    def parse(
+        self, content: str, path: Optional[Path] = None
+    ) -> Optional[MarkdownDocument]:
         """Parse a Markdown string with frontmatter.
 
         Args:
@@ -181,7 +184,9 @@ class MarkdownProcessor:
 _processor = MarkdownProcessor()
 
 
-def parse_markdown(content: str, path: Optional[Path] = None) -> Optional[MarkdownDocument]:
+def parse_markdown(
+    content: str, path: Optional[Path] = None
+) -> Optional[MarkdownDocument]:
     """Parse a Markdown string with frontmatter.
 
     Args:

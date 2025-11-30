@@ -36,7 +36,7 @@ def render():
         Paragraph("✓ Production-ready builds"),
         Paragraph("✓ Data loading with nitro-datastore"),
         Paragraph("✓ Plugin system with nitro-dispatch"),
-        class_name="content"
+        class_name="content",
     )
 
     # Create container div

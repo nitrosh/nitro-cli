@@ -12,7 +12,9 @@ from .serve import serve
     "--host", "-h", default="localhost", help="Host address for the development server"
 )
 @click.option("--no-reload", is_flag=True, help="Disable live reload")
-@click.option("--open", "-o", "open_browser", is_flag=True, help="Open browser automatically")
+@click.option(
+    "--open", "-o", "open_browser", is_flag=True, help="Open browser automatically"
+)
 @click.option("--verbose", "-v", is_flag=True, help="Enable verbose output")
 @click.option("--debug", is_flag=True, help="Enable debug mode with full tracebacks")
 @click.option("--log-file", type=click.Path(), help="Write logs to a file")
