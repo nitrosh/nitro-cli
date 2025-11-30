@@ -13,13 +13,6 @@ from ..utils import logger, LogLevel, info, warning, verbose, configure
 
 @click.command()
 @click.argument("project_name")
-@click.option(
-    "--template",
-    "-t",
-    type=click.Choice(["website", "portfolio", "blog"], case_sensitive=False),
-    default="website",
-    help="Template to use for the project",
-)
 @click.option("--no-git", is_flag=True, help="Skip git initialization")
 @click.option("--no-install", is_flag=True, help="Skip dependency installation")
 @click.option(
@@ -27,7 +20,7 @@ from ..utils import logger, LogLevel, info, warning, verbose, configure
 )
 @click.option("--debug", is_flag=True, help="Enable debug mode with full tracebacks")
 @click.option("--log-file", type=click.Path(), help="Write logs to a file")
-def new(project_name, template, no_git, no_install, verbose_flag, debug, log_file):
+def new(project_name, no_git, no_install, verbose_flag, debug, log_file):
     """
     Create a new Nitro project.
 
@@ -58,7 +51,6 @@ def new(project_name, template, no_git, no_install, verbose_flag, debug, log_fil
             sys.exit(1)
 
         info(f"Creating new Nitro project: {project_name}")
-        verbose(f"Template: {template}")
         verbose(f"Location: {project_path}")
 
         with Progress(
@@ -73,7 +65,7 @@ def new(project_name, template, no_git, no_install, verbose_flag, debug, log_fil
 
             # Copy template
             progress.update(task, description="Copying template files...")
-            template_path = Path(__file__).parent.parent / "templates" / template
+            template_path = Path(__file__).parent.parent / "templates" / "default"
             file_count = copy_template(template_path, project_path, verbose_flag)
             verbose(f"Copied {file_count} template files")
 
@@ -150,7 +142,7 @@ def new(project_name, template, no_git, no_install, verbose_flag, debug, log_fil
 
         # Show completion panel
         logger.newline()
-        logger.scaffold_complete(project_name, template)
+        logger.scaffold_complete(project_name)
 
     except Exception as e:
         if debug:

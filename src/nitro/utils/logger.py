@@ -573,14 +573,13 @@ class NitroLogger:
     # Scaffold output
     # -------------------------------------------------------------------------
 
-    def scaffold_complete(self, project_name: str, template: str) -> None:
+    def scaffold_complete(self, project_name: str) -> None:
         """Display scaffold completion message."""
         content = Text()
         content.append("\n")
         content.append("  Project ")
         content.append(project_name, style="bold")
         content.append(" created successfully!\n")
-        content.append(f"  Template: {template}\n")
         content.append("\n")
         content.append("  To get started:\n", style="dim")
         content.append(f"  cd {project_name}\n", style="cyan")

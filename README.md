@@ -21,7 +21,6 @@ Nitro CLI is a command-line tool that helps you build beautiful static websites 
 - **One-Click Deploy**: Deploy to Netlify, Vercel, or Cloudflare Pages
 - **Flexible Data**: Load JSON/YAML data with [nitro-datastore](https://github.com/nitrosh/nitro-datastore)
 - **Extensible**: Plugin system powered by [nitro-dispatch](https://github.com/nitrosh/nitro-dispatch)
-- **Multiple Templates**: Start quickly with website, portfolio, or blog templates
 
 ## Installation
 
@@ -46,15 +45,6 @@ pip install -e .
 ```bash
 nitro new my-site
 cd my-site
-```
-
-Choose from available templates:
-- `website` - Basic website template (default)
-- `portfolio` - Portfolio showcase template
-- `blog` - Blog template
-
-```bash
-nitro new my-portfolio --template portfolio
 ```
 
 ### 2. Start Development Server
@@ -136,7 +126,6 @@ Create a new Nitro project.
 nitro new PROJECT_NAME [OPTIONS]
 
 Options:
-  -t, --template [website|portfolio|blog]  Template to use (default: website)
   --no-git                                 Skip git initialization
   --no-install                             Skip dependency installation
   -v, --verbose                            Enable verbose output
