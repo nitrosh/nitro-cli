@@ -1,6 +1,6 @@
 """Nitro CLI - A static site generator"""
 
-__version__ = "0.1.0"
+__version__ = "1.0.0"
 __author__ = "Sean Nieuwoudt"
 
 from .core.config import Config

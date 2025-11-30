@@ -1,4 +1,5 @@
-"""Enhanced logging utilities for Nitro CLI.
+"""
+Enhanced logging utilities for Nitro CLI.
 
 Provides production-quality logging with:
 - Timestamps and contextual output
@@ -27,10 +28,10 @@ from rich.traceback import Traceback
 class LogLevel(IntEnum):
     """Log verbosity levels."""
 
-    QUIET = 0  # Only errors and final summary
-    NORMAL = 1  # Key milestones (default)
+    QUIET = 0    # Only errors and final summary
+    NORMAL = 1   # Key milestones (default)
     VERBOSE = 2  # Detailed per-file output
-    DEBUG = 3  # Full debug information
+    DEBUG = 3    # Full debug information
 
 
 # Custom theme for Nitro CLI
@@ -61,7 +62,7 @@ class NitroLogger:
     VERSION = "0.1.0"
 
     def __init__(self):
-        """Initialize the logger."""
+        """Initialise the logger."""
         self.console = Console(theme=NITRO_THEME)
         self.level = LogLevel.NORMAL
         self.show_timestamps = False
@@ -76,7 +77,8 @@ class NitroLogger:
         show_timestamps: bool = False,
         log_file: Optional[Path] = None,
     ) -> None:
-        """Configure logger settings.
+        """
+        Configure logger settings.
 
         Args:
             level: Verbosity level
@@ -87,9 +89,7 @@ class NitroLogger:
         self.show_timestamps = show_timestamps or level >= LogLevel.VERBOSE
 
         if log_file:
-            # Close any existing file handle
             self._close_log_file()
-
             self.log_file = Path(log_file)
             self._file_handle = open(self.log_file, "w")
             self._file_console = Console(

@@ -13,7 +13,8 @@ console = Console()
 
 
 def detect_project():
-    """Detect if we're inside a Nitro project.
+    """
+    Detect if we're inside a Nitro project.
 
     Returns:
         tuple: (project_root, project_name) or (None, None)
@@ -28,15 +29,16 @@ def show_welcome():
     """Display the welcome banner with commands and project info."""
     project_root, project_name = detect_project()
 
-    # Header with logo
     header = Text()
     header.append("\n")
-    header.append("  ⚡ ", style="bold magenta")
-    header.append("N I T R O", style="bold cyan")
-    header.append("  ", style="bold magenta")
+    header.append("⚡ ", style="bold magenta")
+    header.append("Nitro", style="bold cyan")
+    header.append(" ", style="bold magenta")
     header.append(f"v{__version__}", style="dim")
+    header.append(" - ")
+    header.append("https://nitro.sh", style="dim")
     header.append("\n")
-    header.append("  Static websites for the next generation\n", style="dim")
+    header.append("   Static sites without the JavaScript fatigue.\n", style="dim")
 
     # Project info (if inside a project)
     if project_root:
@@ -73,14 +75,7 @@ def show_welcome():
     content = Text()
     content.append_text(header)
     content.append_text(commands)
-
-    panel = Panel(
-        content,
-        box=ROUNDED,
-        border_style="cyan",
-        padding=(0, 1),
-    )
-    console.print(panel)
+    console.print(content)
 
 
 @click.group(invoke_without_command=True)
@@ -88,15 +83,14 @@ def show_welcome():
 @click.pass_context
 def main(ctx):
     """
-    Nitro - A static website framework for the next generation.
-
-    Build beautiful static websites using Python and nitro-ui.
+    Nitro: Static sites without the JavaScript fatigue.
     """
     ctx.ensure_object(dict)
     if ctx.invoked_subcommand is None:
         show_welcome()
 
 
+# Available Commands
 main.add_command(new)
 main.add_command(serve)
 main.add_command(dev)
