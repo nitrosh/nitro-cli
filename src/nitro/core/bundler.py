@@ -11,7 +11,8 @@ class Bundler:
     """Handles asset optimization and bundling."""
 
     def __init__(self, build_dir: Path):
-        """Initialize bundler.
+        """
+        Initialise bundler.
 
         Args:
             build_dir: Build output directory
@@ -20,13 +21,14 @@ class Bundler:
         self.manifest: Dict[str, str] = {}
 
     def optimize_css(self, minify: bool = True) -> int:
-        """Optimize CSS files.
+        """
+        Optimise CSS files.
 
         Args:
             minify: Enable CSS minification
 
         Returns:
-            Number of files optimized
+            Number of files optimised
         """
         css_files = list(self.build_dir.rglob("*.css"))
 
@@ -40,7 +42,6 @@ class Bundler:
                     # Minify CSS
                     try:
                         import csscompressor
-
                         content = css_file.read_text()
                         minified = csscompressor.compress(content)
                         css_file.write_text(minified)

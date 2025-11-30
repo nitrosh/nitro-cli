@@ -1,16 +1,8 @@
 {
   "site": {
-    "name": "My Website",
-    "description": "A website built with Nitro and nitro-ui",
+    "name": "My Site",
+    "tagline": "Built with Python, powered by Nitro",
+    "description": "A fast, modern static site",
     "author": "Your Name"
-  },
-  "social": {
-    "github": "https://github.com/yourusername",
-    "twitter": "https://twitter.com/yourusername"
-  },
-  "features": [
-    {"name": "nitro-ui", "description": "Python-based HTML generation"},
-    {"name": "nitro-datastore", "description": "Flexible data loading"},
-    {"name": "nitro-dispatch", "description": "Plugin system with hooks"}
-  ]
+  }
 }

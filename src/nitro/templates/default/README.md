@@ -1,26 +1,18 @@
-# My Website
+# My Site
 
-A static website built with Nitro CLI and nitro-ui.
+A static site built with [Nitro CLI](https://github.com/nitro-sh/nitro-cli).
 
-## Getting Started
+## Development
 
-### Development
-
-Start the development server:
+Start the development server with hot reload:
 
 ```bash
-nitro serve
+nitro dev
 ```
 
 Your site will be available at http://localhost:3000
 
-### Building
-
-Generate static HTML files:
-
-```bash
-nitro generate
-```
+## Building
 
 Build for production:
 
@@ -28,17 +20,25 @@ Build for production:
 nitro build
 ```
 
+Preview the production build:
+
+```bash
+nitro preview
+```
+
 ## Project Structure
 
-- `src/pages/` - Page definitions (route = file path)
-- `src/components/` - Reusable nitro-ui components
-- `src/layouts/` - Page layouts/templates
-- `src/data/` - Data files (JSON/YAML)
-- `src/styles/` - CSS stylesheets
-- `src/public/` - Static assets
-- `build/` - Generated output
+```
+├── src/
+│   ├── pages/          # Page files (route = file path)
+│   ├── components/     # Reusable components
+│   ├── styles/         # CSS stylesheets
+│   └── data/           # JSON/YAML data
+├── build/              # Generated output
+└── nitro.config.py     # Configuration
+```
 
 ## Learn More
 
-- [Nitro CLI Documentation](https://github.com/nitro-sh/nitro-cli)
-- [nitro-ui Documentation](https://github.com/nitro-sh/nitro-ui)
+- [Nitro CLI](https://github.com/nitro-sh/nitro-cli) - Documentation
+- [nitro-ui](https://github.com/nitrosh/nitro-ui) - HTML generation library

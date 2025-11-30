@@ -1,11 +1,24 @@
-"""About page using nitro-ui."""
+"""About page."""
 
-from nitro_ui import HTML, Head, Body, Title, Meta, Link, Div, H1, Paragraph
-from nitro import Page
+from nitro_ui import (
+    HTML,
+    Head,
+    Body,
+    Title,
+    Meta,
+    HtmlLink,
+    Main,
+    Div,
+    H1,
+    H2,
+    Paragraph,
+    UnorderedList,
+    ListItem,
+)
+from nitro import Page, load_data
 import sys
 from pathlib import Path
 
-# Add parent directory to path to import components
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from components.header import Header
@@ -13,41 +26,59 @@ from components.footer import Footer
 
 
 def render():
-    """Render the about page.
+    """Render the about page."""
+    data = load_data("src/data/site.json")
+    site_name = data.site.name
 
-    Returns:
-        Page object with HTML content
-    """
-    # Create content div
-    content_div = Div(
-        H1("About"),
+    content = Div(
+        H1("About This Site"),
         Paragraph(
-            "This is the about page. Customize it to tell visitors about your site!"
+            "This is a static site built with Nitro CLI and nitro-ui. "
+            "Everything you see is generated from Python code."
         ),
+        H2("How It Works"),
         Paragraph(
-            "You can add more pages by creating new Python files in src/pages/. "
-            "The file path determines the URL - for example, src/pages/blog/post.py "
-            "becomes /blog/post.html"
+            "Each page is a Python file in the src/pages/ directory. "
+            "The file path determines the URL structure:"
         ),
-        class_name="content",
+        UnorderedList(
+            ListItem("src/pages/index.py becomes /index.html"),
+            ListItem("src/pages/about.py becomes /about.html"),
+            ListItem("src/pages/blog/post.py becomes /blog/post.html"),
+        ),
+        H2("Project Structure"),
+        UnorderedList(
+            ListItem("src/pages/ - Your page files"),
+            ListItem("src/components/ - Reusable components"),
+            ListItem("src/styles/ - CSS stylesheets"),
+            ListItem("src/data/ - JSON/YAML data files"),
+            ListItem("build/ - Generated static files"),
+        ),
+        H2("Next Steps"),
+        Paragraph(
+            "Start by editing src/pages/index.py to customize your home page. "
+            "Create new pages by adding .py files to src/pages/. "
+            "Run nitro build when you're ready to deploy."
+        ),
+        class_name="about-content",
     )
 
-    # Create container div
-    container = Div(content_div, class_name="container")
-
-    # Create page
     page = HTML(
         Head(
             Meta(charset="UTF-8"),
             Meta(name="viewport", content="width=device-width, initial-scale=1.0"),
-            Title("About - My Website"),
-            Link(rel="stylesheet", href="/assets/styles/main.css"),
+            Title(f"About - {site_name}"),
+            HtmlLink(rel="stylesheet", href="/assets/styles/main.css"),
         ),
-        Body(Header("My Website"), container, Footer()),
+        Body(
+            Header(site_name),
+            Main(content),
+            Footer(),
+        ),
     )
 
     return Page(
-        title="About - My Website",
-        meta={"description": "About my website", "keywords": "about, nitro, website"},
+        title=f"About - {site_name}",
+        meta={"description": f"About {site_name}"},
         content=page,
     )
