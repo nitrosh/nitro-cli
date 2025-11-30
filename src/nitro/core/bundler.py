@@ -172,6 +172,140 @@ class Bundler:
         output_path.write_text("\n".join(xml_lines))
         success(f"Generated sitemap with {len(urls)} URL(s)")
 
+    def generate_rss_feed(
+        self,
+        items: List[Dict],
+        base_url: str,
+        output_path: Path,
+        title: str = "Site Feed",
+        description: str = "Latest updates",
+        language: str = "en-us",
+    ) -> None:
+        """Generate an RSS 2.0 feed.
+
+        Args:
+            items: List of feed items with keys: title, link, description, pubDate, guid
+            base_url: Base URL of the site
+            output_path: Output path for feed
+            title: Feed title
+            description: Feed description
+            language: Feed language
+        """
+        from datetime import datetime
+        import html
+
+        # RFC 822 date format for RSS
+        def format_rss_date(dt):
+            if isinstance(dt, datetime):
+                return dt.strftime("%a, %d %b %Y %H:%M:%S +0000")
+            return dt
+
+        # Build RSS XML
+        xml_lines = [
+            '<?xml version="1.0" encoding="UTF-8"?>',
+            '<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">',
+            "  <channel>",
+            f"    <title>{html.escape(title)}</title>",
+            f"    <link>{base_url}</link>",
+            f"    <description>{html.escape(description)}</description>",
+            f"    <language>{language}</language>",
+            f"    <lastBuildDate>{format_rss_date(datetime.now())}</lastBuildDate>",
+            f'    <atom:link href="{base_url.rstrip("/")}/feed.xml" rel="self" type="application/rss+xml"/>',
+        ]
+
+        for item in items:
+            item_title = html.escape(item.get("title", "Untitled"))
+            item_link = item.get("link", base_url)
+            item_desc = html.escape(item.get("description", ""))
+            item_date = format_rss_date(item.get("pubDate", datetime.now()))
+            item_guid = item.get("guid", item_link)
+
+            xml_lines.extend([
+                "    <item>",
+                f"      <title>{item_title}</title>",
+                f"      <link>{item_link}</link>",
+                f"      <description>{item_desc}</description>",
+                f"      <pubDate>{item_date}</pubDate>",
+                f"      <guid>{item_guid}</guid>",
+                "    </item>",
+            ])
+
+        xml_lines.extend([
+            "  </channel>",
+            "</rss>",
+        ])
+
+        output_path.write_text("\n".join(xml_lines))
+        success(f"Generated RSS feed with {len(items)} item(s)")
+
+    def generate_atom_feed(
+        self,
+        items: List[Dict],
+        base_url: str,
+        output_path: Path,
+        title: str = "Site Feed",
+        subtitle: str = "Latest updates",
+        author_name: str = "Author",
+    ) -> None:
+        """Generate an Atom feed.
+
+        Args:
+            items: List of feed items with keys: title, link, summary, updated, id
+            base_url: Base URL of the site
+            output_path: Output path for feed
+            title: Feed title
+            subtitle: Feed subtitle
+            author_name: Author name
+        """
+        from datetime import datetime
+        import html
+
+        # ISO 8601 date format for Atom
+        def format_atom_date(dt):
+            if isinstance(dt, datetime):
+                return dt.strftime("%Y-%m-%dT%H:%M:%SZ")
+            return dt
+
+        feed_id = f"{base_url.rstrip('/')}/atom.xml"
+        updated = format_atom_date(datetime.now())
+
+        # Build Atom XML
+        xml_lines = [
+            '<?xml version="1.0" encoding="UTF-8"?>',
+            '<feed xmlns="http://www.w3.org/2005/Atom">',
+            f"  <title>{html.escape(title)}</title>",
+            f"  <subtitle>{html.escape(subtitle)}</subtitle>",
+            f'  <link href="{base_url}" rel="alternate"/>',
+            f'  <link href="{feed_id}" rel="self"/>',
+            f"  <id>{feed_id}</id>",
+            f"  <updated>{updated}</updated>",
+            "  <author>",
+            f"    <name>{html.escape(author_name)}</name>",
+            "  </author>",
+        ]
+
+        for item in items:
+            item_title = html.escape(item.get("title", "Untitled"))
+            item_link = item.get("link", base_url)
+            item_summary = html.escape(item.get("summary", item.get("description", "")))
+            item_updated = format_atom_date(item.get("updated", item.get("pubDate", datetime.now())))
+            item_id = item.get("id", item.get("guid", item_link))
+
+            xml_lines.extend([
+                "  <entry>",
+                f"    <title>{item_title}</title>",
+                f'    <link href="{item_link}"/>',
+                f"    <id>{item_id}</id>",
+                f"    <updated>{item_updated}</updated>",
+                f"    <summary>{item_summary}</summary>",
+                "  </entry>",
+            ])
+
+        xml_lines.append("</feed>")
+
+        output_path.write_text("\n".join(xml_lines))
+        success(f"Generated Atom feed with {len(items)} item(s)")
+
     def generate_robots_txt(self, base_url: str, output_path: Path) -> None:
         """Generate robots.txt.
 
@@ -219,6 +353,92 @@ Sitemap: {sitemap_url}
 
         output_path.write_text(json.dumps(manifest, indent=2))
         success(f"Created asset manifest with {len(manifest)} file(s)")
+
+    def fingerprint_assets(self) -> Dict[str, str]:
+        """Add content hashes to CSS and JS filenames for cache busting.
+
+        Renames files like main.css to main.a1b2c3d4.css and updates
+        all HTML references.
+
+        Returns:
+            Dictionary mapping original paths to new paths
+        """
+        import re
+
+        # Find all CSS and JS files
+        asset_files = []
+        for pattern in ["*.css", "*.js"]:
+            asset_files.extend(self.build_dir.rglob(pattern))
+
+        if not asset_files:
+            return {}
+
+        # Create mapping of old paths to new paths
+        path_mapping = {}
+
+        for asset_path in asset_files:
+            # Calculate content hash
+            content = asset_path.read_bytes()
+            hasher = hashlib.md5()
+            hasher.update(content)
+            content_hash = hasher.hexdigest()[:8]
+
+            # Create new filename with hash
+            stem = asset_path.stem
+            suffix = asset_path.suffix
+            new_name = f"{stem}.{content_hash}{suffix}"
+            new_path = asset_path.parent / new_name
+
+            # Store mapping (relative to build dir)
+            old_rel = str(asset_path.relative_to(self.build_dir))
+            new_rel = str(new_path.relative_to(self.build_dir))
+            path_mapping[old_rel] = new_rel
+
+            # Rename the file
+            asset_path.rename(new_path)
+
+        # Update references in HTML files
+        if path_mapping:
+            html_files = list(self.build_dir.rglob("*.html"))
+
+            for html_path in html_files:
+                content = html_path.read_text()
+                modified = False
+
+                for old_path, new_path in path_mapping.items():
+                    # Handle various path formats in HTML
+                    # e.g., /assets/styles/main.css, assets/styles/main.css, ./assets/styles/main.css
+                    old_filename = Path(old_path).name
+                    new_filename = Path(new_path).name
+
+                    # Replace in href and src attributes
+                    patterns = [
+                        (f'href="{old_path}"', f'href="{new_path}"'),
+                        (f"href='{old_path}'", f"href='{new_path}'"),
+                        (f'src="{old_path}"', f'src="{new_path}"'),
+                        (f"src='{old_path}'", f"src='{new_path}'"),
+                        (f'href="/{old_path}"', f'href="/{new_path}"'),
+                        (f"href='/{old_path}'", f"href='/{new_path}'"),
+                        (f'src="/{old_path}"', f'src="/{new_path}"'),
+                        (f"src='/{old_path}'", f"src='/{new_path}'"),
+                        # Also handle just filename references
+                        (f'href="{old_filename}"', f'href="{new_filename}"'),
+                        (f"href='{old_filename}'", f"href='{new_filename}'"),
+                        (f'src="{old_filename}"', f'src="{new_filename}"'),
+                        (f"src='{old_filename}'", f"src='{new_filename}'"),
+                    ]
+
+                    for old_pattern, new_pattern in patterns:
+                        if old_pattern in content:
+                            content = content.replace(old_pattern, new_pattern)
+                            modified = True
+
+                if modified:
+                    html_path.write_text(content)
+
+            success(f"Fingerprinted {len(path_mapping)} asset(s)")
+
+        return path_mapping
 
     def calculate_build_size(self) -> Dict[str, int]:
         """Calculate total build size.

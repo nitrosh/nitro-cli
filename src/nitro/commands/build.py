@@ -7,6 +7,8 @@ import click
 from ..core.bundler import Bundler
 from ..core.config import load_config
 from ..core.generator import Generator
+from ..core.images import ImageOptimizer, ImageConfig
+from ..core.islands import IslandProcessor, IslandConfig
 from ..utils import logger, LogLevel, info, success, verbose, configure
 
 
@@ -19,15 +21,31 @@ from ..utils import logger, LogLevel, info, success, verbose, configure
     default=True,
     help="Optimize images and assets (default: enabled)",
 )
+@click.option(
+    "--responsive/--no-responsive",
+    default=False,
+    help="Generate responsive images with WebP/AVIF variants (default: disabled)",
+)
+@click.option(
+    "--fingerprint/--no-fingerprint",
+    default=True,
+    help="Add content hashes to asset filenames for cache busting (default: enabled)",
+)
+@click.option(
+    "--islands/--no-islands",
+    default=True,
+    help="Process islands and inject hydration scripts (default: enabled)",
+)
 @click.option("--output", "-o", default="build", help="Output directory")
 @click.option("--clean", is_flag=True, help="Clean build directory before building")
+@click.option("--force", "-f", is_flag=True, help="Force full rebuild, ignore cache")
 @click.option(
     "--verbose", "-v", "verbose_flag", is_flag=True, help="Enable verbose output"
 )
 @click.option("--quiet", "-q", is_flag=True, help="Only show errors and final summary")
 @click.option("--debug", is_flag=True, help="Enable debug mode with full tracebacks")
 @click.option("--log-file", type=click.Path(), help="Write logs to a file")
-def build(minify, optimize, output, clean, verbose_flag, quiet, debug, log_file):
+def build(minify, optimize, responsive, fingerprint, islands, output, clean, force, verbose_flag, quiet, debug, log_file):
     """
     Build the site for production.
 
@@ -82,7 +100,7 @@ def build(minify, optimize, output, clean, verbose_flag, quiet, debug, log_file)
 
         # Generate site
         logger.section("Generating Pages")
-        success_result = generator.generate(verbose=verbose_flag)
+        success_result = generator.generate(verbose=verbose_flag, force=force or clean)
 
         if not success_result:
             logger.error_panel(
@@ -108,6 +126,56 @@ def build(minify, optimize, output, clean, verbose_flag, quiet, debug, log_file)
             img_count = bundler.optimize_images(quality=85)
             if img_count:
                 verbose(f"Optimized {img_count} image(s)")
+
+        # Generate responsive images with WebP/AVIF
+        if responsive:
+            logger.section("Generating Responsive Images")
+            img_optimizer = ImageOptimizer(ImageConfig(
+                formats=["avif", "webp", "original"],
+                sizes=[320, 640, 768, 1024, 1280, 1920],
+                lazy_load=True,
+            ))
+
+            # Process all HTML files to replace img tags with picture elements
+            html_files = list(generator.build_dir.rglob("*.html"))
+            resp_count = 0
+            for html_file in html_files:
+                original_content = html_file.read_text()
+                processed_content = img_optimizer.process_html(
+                    original_content,
+                    source_dir=generator.project_root / "static",
+                    output_dir=generator.build_dir,
+                    base_url="/",
+                )
+                if processed_content != original_content:
+                    html_file.write_text(processed_content)
+                    resp_count += 1
+
+            if resp_count:
+                verbose(f"Processed {resp_count} HTML file(s) with responsive images")
+
+        # Fingerprint assets for cache busting
+        if fingerprint:
+            logger.section("Fingerprinting Assets")
+            asset_mapping = bundler.fingerprint_assets()
+            if asset_mapping:
+                verbose(f"Fingerprinted {len(asset_mapping)} asset(s)")
+
+        # Process islands and inject hydration scripts
+        if islands:
+            logger.section("Processing Islands")
+            island_processor = IslandProcessor(IslandConfig(debug=debug))
+            html_files = list(generator.build_dir.rglob("*.html"))
+            islands_count = 0
+            for html_file in html_files:
+                content = html_file.read_text()
+                if 'data-island=' in content:
+                    processed = island_processor.process_html(content)
+                    html_file.write_text(processed)
+                    islands_count += 1
+
+            if islands_count:
+                verbose(f"Processed {islands_count} page(s) with islands")
 
         # Generate sitemap
         logger.section("Generating Metadata")
@@ -149,6 +217,12 @@ def build(minify, optimize, output, clean, verbose_flag, quiet, debug, log_file)
             optimizations.append("HTML & CSS Minification")
         if optimize:
             optimizations.append("Image Optimization")
+        if responsive:
+            optimizations.append("Responsive Images (WebP/AVIF)")
+        if fingerprint:
+            optimizations.append("Asset Fingerprinting")
+        if islands:
+            optimizations.append("Islands Hydration")
         optimizations.extend(["Sitemap Generation", "Asset Manifest"])
 
         # Display build summary

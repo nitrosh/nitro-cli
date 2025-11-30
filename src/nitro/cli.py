@@ -7,7 +7,7 @@ from rich.panel import Panel
 from rich.text import Text
 from rich.box import ROUNDED
 from . import __version__
-from .commands import new, serve, build, test, docs
+from .commands import new, serve, dev, build, preview, clean, info, deploy, test, docs
 from .core.project import get_project_root
 
 console = Console()
@@ -55,15 +55,17 @@ def show_welcome():
     commands.append("  Commands:\n", style="bold")
     commands.append("    nitro new ", style="cyan")
     commands.append("<name>", style="dim cyan")
-    commands.append("  Create a new project\n", style="dim")
-    commands.append("    nitro serve     ", style="cyan")
-    commands.append("  Start dev server\n", style="dim")
-    commands.append("    nitro build     ", style="cyan")
-    commands.append("  Build for production\n", style="dim")
-    commands.append("    nitro test      ", style="cyan")
-    commands.append("  Run tests\n", style="dim")
-    commands.append("    nitro docs      ", style="cyan")
-    commands.append("  Generate docs\n", style="dim")
+    commands.append("   Create a new project\n", style="dim")
+    commands.append("    nitro dev         ", style="cyan")
+    commands.append("   Start dev server with hot reload\n", style="dim")
+    commands.append("    nitro build       ", style="cyan")
+    commands.append("   Build for production\n", style="dim")
+    commands.append("    nitro preview     ", style="cyan")
+    commands.append("   Preview production build\n", style="dim")
+    commands.append("    nitro clean       ", style="cyan")
+    commands.append("   Clean build artifacts\n", style="dim")
+    commands.append("    nitro info        ", style="cyan")
+    commands.append("   Show project info\n", style="dim")
     commands.append("\n")
     commands.append("  Run ", style="dim")
     commands.append("nitro <command> --help", style="cyan")
@@ -98,7 +100,12 @@ def main(ctx):
 
 main.add_command(new)
 main.add_command(serve)
+main.add_command(dev)
 main.add_command(build)
+main.add_command(preview)
+main.add_command(clean)
+main.add_command(info)
+main.add_command(deploy)
 main.add_command(test)
 main.add_command(docs)
 

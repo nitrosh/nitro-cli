@@ -2,7 +2,7 @@
 
 ## Overview
 
-Nitro is a command-line tool for scaffolding, generating, serving, building, testing, documenting, and deploying static websites. It uses [YDNATL](https://github.com/sn/ydnatl) as the rendering engine and acts as an extension to it.
+Nitro is a command-line tool for scaffolding, generating, serving, building, testing, documenting, and deploying static websites. It uses [nitro-ui](https://github.com/nitro-sh/nitro-ui) as the rendering engine and acts as an extension to it.
 
 **Installation:** `pip install nitro-cli`
 
@@ -34,7 +34,7 @@ nitro-cli/
 │       ├── core/
 │       │   ├── __init__.py
 │       │   ├── project.py  # Project config & management
-│       │   ├── renderer.py # YDNATL integration
+│       │   ├── renderer.py # nitro-ui integration
 │       │   ├── bundler.py  # Asset bundling
 │       │   └── watcher.py  # File watching for dev server
 │       ├── plugins/
@@ -89,7 +89,7 @@ Generate static HTML files from source files.
 
 **Behavior:**
 - Scans `src/pages/` for Python files
-- Executes Python files to generate YDNATL components
+- Executes Python files to generate Nitro components
 - Renders to HTML with proper routing
 - Processes data from `src/data/`
 - Injects styles from `src/styles/`
@@ -171,7 +171,7 @@ my-site/
 ├── .gitignore
 ├── README.md
 ├── src/
-│   ├── components/          # Reusable YDNATL components
+│   ├── components/          # Reusable nitro-ui components
 │   │   ├── __init__.py
 │   │   ├── header.py
 │   │   ├── footer.py
@@ -265,66 +265,79 @@ config = Config(
 
 ### Plugin Architecture
 
-Plugins extend Nitro's functionality through a hook-based system.
+Plugins extend Nitro's functionality through nitro-dispatch's hook-based system.
 
 **Base Plugin Class:**
 
+Nitro uses `nitro-dispatch` for its plugin system. Plugins extend `NitroPlugin` (which extends `PluginBase` from nitro-dispatch) and use the `@hook` decorator to register event handlers.
+
 ```python
 # src/nitro/plugins/base.py
-class NitroPlugin:
+from nitro_dispatch import PluginBase, hook
+
+class NitroPlugin(PluginBase):
     """Base class for all Nitro plugins"""
 
-    name: str
-    version: str
+    name: str = "base-plugin"
+    version: str = "0.1.0"
+    description: str = "Nitro plugin"
+    author: str = ""
+    dependencies: list = []
 
-    def on_init(self, config):
-        """Called when plugin is loaded"""
+    def on_load(self) -> None:
+        """Called when plugin is loaded by the plugin manager."""
         pass
 
-    def on_pre_generate(self, context):
-        """Before HTML generation"""
+    def on_unload(self) -> None:
+        """Called when plugin is unloaded."""
         pass
 
-    def on_post_generate(self, context, output):
-        """After HTML generation, can modify output"""
-        return output
-
-    def on_pre_build(self, context):
-        """Before production build"""
+    def on_error(self, error: Exception) -> None:
+        """Called when an error occurs in the plugin."""
         pass
-
-    def on_post_build(self, context):
-        """After production build"""
-        pass
-
-    def add_commands(self, cli):
-        """Add custom CLI commands"""
-        pass
-
-    def process_data(self, data_file, content):
-        """Process data files (e.g., markdown -> JSON)"""
-        return content
 ```
+
+**Available Hooks:**
+- `nitro.init` - Plugin initialization
+- `nitro.pre_generate` - Before HTML generation
+- `nitro.post_generate` - After HTML generation (can modify output)
+- `nitro.pre_build` - Before production build
+- `nitro.post_build` - After production build
+- `nitro.process_data` - Process data files
+- `nitro.add_commands` - Add custom CLI commands
 
 **Example Plugin:**
 
 ```python
-# Example: Markdown plugin
-from nitro.plugins import NitroPlugin
+# src/plugins/markdown_plugin.py
+from nitro.plugins import NitroPlugin, hook
 import markdown
 
-class MarkdownPlugin(NitroPlugin):
+class Plugin(NitroPlugin):
+    """Plugin class must be named 'Plugin' for auto-discovery."""
+
     name = "nitro-markdown"
     version = "1.0.0"
+    description = "Markdown processing for Nitro"
+    author = "Your Name"
 
-    def process_data(self, data_file, content):
+    @hook("nitro.process_data", priority=50)
+    def process_markdown(self, data):
+        """Process markdown files."""
+        data_file = data.get('file', '')
+        content = data.get('content', '')
         if data_file.endswith('.md'):
-            return markdown.markdown(content)
-        return content
+            data['content'] = markdown.markdown(content)
+        return data
 
-    def on_post_generate(self, context, output):
-        # Could add TOC, syntax highlighting, etc.
-        return output
+    @hook("nitro.post_generate", priority=50)
+    def add_syntax_highlighting(self, data):
+        """Add syntax highlighting to code blocks."""
+        # Modify HTML output
+        html = data.get('output', '')
+        # Add highlighting logic here
+        data['output'] = html
+        return data
 ```
 
 ### Plugin Discovery
@@ -334,23 +347,26 @@ Plugins can be:
 2. Placed in user's `src/plugins/` directory
 3. Registered in `nitro.config.py`
 
-## YDNATL Integration
+## nitro-ui Integration
 
 ### Page Definition Pattern
 
-Pages are Python files that return YDNATL components:
+Pages are Python files that return nitro-ui components:
 
 ```python
 # src/pages/index.py
-from ydnatl import HTML, Head, Body, Div, H1, Paragraph
+from nitro_ui import HTML, Head, Body, Div, H1, Paragraph
 from src.components.header import Header
 from src.components.footer import Footer
 from nitro import Page, load_data
 
-# Load data
-site_data = load_data('data/site.json')
+# Load data - returns a NitroDataStore
+data = load_data('data/site.json')
 
 def render():
+    # Access data using dot notation
+    site_name = data.site.name
+
     return Page(
         title="Home",
         meta={
@@ -360,11 +376,12 @@ def render():
         content=HTML(
             Head(),
             Body(
-                Header(site_name=site_data['name']),
+                Header(site_name=site_name),
                 Div(
                     H1("Welcome to my site"),
-                    Paragraph("This is built with Nitro + YDNATL!")
-                ).add_class("container"),
+                    Paragraph("This is built with Nitro + nitro-ui!"),
+                    class_name="container"
+                ),
                 Footer()
             )
         )
@@ -377,19 +394,19 @@ Reusable components:
 
 ```python
 # src/components/header.py
-from ydnatl import Header as HTMLHeader, Nav, A, Div
+from nitro_ui import Header as HTMLHeader, Nav, A, Div, Span
 
 def Header(site_name="My Site"):
     return HTMLHeader(
-        Div(
-            site_name
-        ).add_class("logo"),
+        Div(Span(site_name), class_name="logo"),
         Nav(
             A("Home", href="/"),
             A("About", href="/about"),
-            A("Blog", href="/blog")
-        ).add_class("nav")
-    ).add_class("header")
+            A("Blog", href="/blog"),
+            class_name="nav"
+        ),
+        class_name="header"
+    )
 ```
 
 ## Dependencies
@@ -398,7 +415,7 @@ def Header(site_name="My Site"):
 
 ```
 click>=8.0.0              # CLI framework
-ydnatl>=1.0.0            # HTML rendering engine
+nitro-ui>=1.0.0          # HTML rendering engine
 watchdog>=2.1.0          # File system monitoring for serve command
 rich>=10.0.0             # Beautiful CLI output and logging
 pyyaml>=6.0              # YAML data file support
@@ -440,7 +457,7 @@ markdown>=3.3.0            # Markdown support (for blog posts)
 - [ ] Implement CLI framework with Click
 - [ ] Create entry point for pip installation
 - [ ] Create basic `scaffold` command
-- [ ] Integrate YDNATL renderer
+- [ ] Integrate nitro-ui renderer
 - [ ] Implement simple `generate` command
 
 **Deliverables:**
@@ -550,7 +567,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "nitro-cli"
 version = "1.0.0"
-description = "A CLI tool for building static websites with YDNATL"
+description = "A CLI tool for building static websites with nitro-ui"
 authors = [{name = "Your Name", email = "your.email@example.com"}]
 license = {text = "MIT"}
 readme = "README.md"
@@ -567,7 +584,7 @@ classifiers = [
 ]
 dependencies = [
     "click>=8.0.0",
-    "ydnatl>=1.0.0",
+    "nitro-ui>=1.0.0",
     "watchdog>=2.1.0",
     "rich>=10.0.0",
     "pyyaml>=6.0",
@@ -626,7 +643,7 @@ pip install nitro-cli[markdown]
 3. **Image Optimization** - Auto-resize and compress images
 4. **SEO Tools** - Enhanced sitemap, robots.txt, meta tag management
 5. **Deployment Integration** - Deploy to custom hosting platform
-6. **Theming System** - Multiple theme support with YDNATL's built-in themes
+6. **Theming System** - Multiple theme support with nitro-ui's built-in themes
 7. **Component Library** - Pre-built components (cards, forms, etc.)
 8. **Data Sources** - Support for external APIs, headless CMS
 9. **Incremental Builds** - Enhanced caching and build optimization

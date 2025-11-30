@@ -1,4 +1,4 @@
-from ydnatl import Fragment, H1
+from nitro_ui import Fragment, H1
 
 from src.components.header import HeaderComponent
 

@@ -29,12 +29,11 @@ def render():
             "The file path determines the URL - for example, src/pages/blog/post.py "
             "becomes /blog/post.html"
         ),
+        class_name="content"
     )
-    content_div.add_attribute("class", "content")
 
     # Create container div
-    container = Div(content_div)
-    container.add_attribute("class", "container")
+    container = Div(content_div, class_name="container")
 
     # Create page
     page = HTML(

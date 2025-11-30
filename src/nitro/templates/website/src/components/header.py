@@ -1,6 +1,6 @@
 """Header component using nitro-ui."""
 
-from nitro_ui import Header as UIHeader, Nav, HtmlLink, Div, H1
+from nitro_ui import Header as UIHeader, Nav, A, Div, H1
 
 
 def Header(site_name="My Website"):
@@ -13,22 +13,19 @@ def Header(site_name="My Website"):
         Header element
     """
     # Create logo
-    logo = H1(site_name)
-    logo.add_attribute("class", "logo")
+    logo = H1(site_name, class_name="logo")
 
     # Create navigation
     nav = Nav(
-        HtmlLink("Home", href="/"),
-        HtmlLink("About", href="/about.html"),
+        A("Home", href="/"),
+        A("About", href="/about.html"),
+        class_name="nav"
     )
-    nav.add_attribute("class", "nav")
 
     # Create header content wrapper
-    header_content = Div(logo, nav)
-    header_content.add_attribute("class", "header-content")
+    header_content = Div(logo, nav, class_name="header-content")
 
     # Create header element
-    header_elem = UIHeader(header_content)
-    header_elem.add_attribute("class", "header")
+    header_elem = UIHeader(header_content, class_name="header")
 
     return header_elem

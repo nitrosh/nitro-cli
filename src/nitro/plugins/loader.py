@@ -184,9 +184,13 @@ class PluginLoader:
         """
         self.manager.disable_plugin(plugin_name)
 
-    def enable_tracing(self) -> None:
-        """Enable hook tracing for debugging."""
-        self.manager.enable_hook_tracing()
+    def enable_tracing(self, enabled: bool = True) -> None:
+        """Enable or disable hook tracing for debugging.
+
+        Args:
+            enabled: Whether to enable tracing (default: True)
+        """
+        self.manager.enable_hook_tracing(enabled)
 
     @property
     def plugins(self) -> List[NitroPlugin]:

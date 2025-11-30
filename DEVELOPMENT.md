@@ -445,5 +445,5 @@ deactivate
 
 - [Python Packaging Guide](https://packaging.python.org/)
 - [Click Documentation](https://click.palletsprojects.com/)
-- [YDNATL Documentation](https://github.com/sn/ydnatl)
+- [nitro-ui Documentation](https://github.com/nitro-sh/nitro-ui)
 - [Rich Documentation](https://rich.readthedocs.io/)

@@ -47,6 +47,14 @@ class NitroPlugin(PluginBase):
         """Called when plugin is unloaded."""
         pass
 
+    def on_error(self, error: Exception) -> None:
+        """Called when an error occurs in the plugin.
+
+        Args:
+            error: The exception that occurred
+        """
+        pass
+
 
 # Re-export hook decorator for convenience
 __all__ = ["NitroPlugin", "hook"]

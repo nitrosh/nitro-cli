@@ -466,6 +466,95 @@ class NitroLogger:
         if show_trace or self.level >= LogLevel.DEBUG:
             self._write(Traceback.from_exception(type(exc), exc, exc.__traceback__))
 
+    def code_error(
+        self,
+        title: str,
+        message: str,
+        file_path: str,
+        line: int,
+        column: Optional[int] = None,
+        context_lines: int = 3,
+        suggestion: Optional[str] = None,
+    ) -> None:
+        """Display an error with code context.
+
+        Args:
+            title: Error title
+            message: Error message
+            file_path: Path to the file with the error
+            line: Line number (1-indexed)
+            column: Column number (optional)
+            context_lines: Number of context lines to show
+            suggestion: Optional suggestion for fixing the error
+        """
+        from pathlib import Path
+
+        content = Text()
+        content.append("\n")
+        content.append(f"  {message}\n", style="error")
+
+        # Try to read the source file
+        try:
+            source_path = Path(file_path)
+            if source_path.exists():
+                source_lines = source_path.read_text().splitlines()
+
+                content.append("\n")
+
+                # Calculate line range
+                start_line = max(1, line - context_lines)
+                end_line = min(len(source_lines), line + context_lines)
+
+                # Find the maximum line number width
+                line_num_width = len(str(end_line))
+
+                # Show code context
+                for i in range(start_line, end_line + 1):
+                    if i <= len(source_lines):
+                        line_content = source_lines[i - 1]
+                        line_num = str(i).rjust(line_num_width)
+
+                        if i == line:
+                            # Error line - highlight
+                            content.append(f"  > {line_num} │ ", style="error")
+                            content.append(f"{line_content}\n", style="bold")
+
+                            # Show column indicator if provided
+                            if column is not None and column > 0:
+                                padding = " " * (line_num_width + 5 + column - 1)
+                                content.append(f"  {padding}^\n", style="error")
+                        else:
+                            # Context line
+                            content.append(f"    {line_num} │ ", style="dim")
+                            content.append(f"{line_content}\n", style="dim")
+
+        except Exception:
+            pass  # If we can't read the file, just show the error without context
+
+        # Show file location
+        content.append("\n")
+        location = f"  File: {file_path}"
+        if line:
+            location += f", line {line}"
+        if column:
+            location += f", column {column}"
+        content.append(location + "\n", style="dim")
+
+        # Show suggestion if provided
+        if suggestion:
+            content.append("\n")
+            content.append(f"  Hint: {suggestion}\n", style="info")
+
+        content.append("\n")
+
+        panel = Panel(
+            content,
+            title=f"[bold red]{title}[/]",
+            border_style="red",
+            padding=(0, 1),
+        )
+        self._write(panel)
+
     # -------------------------------------------------------------------------
     # Progress helpers
     # -------------------------------------------------------------------------

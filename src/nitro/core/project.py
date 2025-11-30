@@ -24,7 +24,7 @@ class Page:
 
         Args:
             title: Page title
-            content: YDNATL content (HTML element)
+            content: nitro-ui content (HTML element)
             meta: Meta tags dictionary
             template: Template name (if using a layout)
         """

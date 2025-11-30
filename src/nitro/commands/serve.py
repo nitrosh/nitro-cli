@@ -21,10 +21,11 @@ from ..utils import logger, LogLevel, info, success, error, configure
     "--host", "-h", default="localhost", help="Host address for the development server"
 )
 @click.option("--no-reload", is_flag=True, help="Disable live reload")
+@click.option("--open", "-o", "open_browser", is_flag=True, help="Open browser automatically")
 @click.option("--verbose", "-v", is_flag=True, help="Enable verbose output")
 @click.option("--debug", is_flag=True, help="Enable debug mode with full tracebacks")
 @click.option("--log-file", type=click.Path(), help="Write logs to a file")
-def serve(port, host, no_reload, verbose, debug, log_file):
+def serve(port, host, no_reload, open_browser, verbose, debug, log_file):
     """
     Start a local development server.
 
@@ -39,7 +40,7 @@ def serve(port, host, no_reload, verbose, debug, log_file):
         configure(log_file=log_file)
 
     try:
-        asyncio.run(serve_async(port, host, not no_reload, debug))
+        asyncio.run(serve_async(port, host, not no_reload, open_browser, debug))
     except KeyboardInterrupt:
         # This shouldn't normally be reached since we handle signals in serve_async
         pass
@@ -52,7 +53,7 @@ def serve(port, host, no_reload, verbose, debug, log_file):
 
 
 async def serve_async(
-    port: int, host: str, enable_reload: bool, debug_mode: bool = False
+    port: int, host: str, enable_reload: bool, open_browser: bool = False, debug_mode: bool = False
 ):
     """Async serve implementation.
 
@@ -60,6 +61,7 @@ async def serve_async(
         port: Port number
         host: Host address
         enable_reload: Enable live reload
+        open_browser: Open browser automatically
         debug_mode: Enable debug mode
     """
     # Show banner
@@ -99,6 +101,13 @@ async def serve_async(
         live_reload=enable_reload,
         watching="src/" if enable_reload else None,
     )
+
+    # Open browser if requested
+    if open_browser:
+        import webbrowser
+        url = f"http://{host}:{port}"
+        webbrowser.open(url)
+        info(f"Opened browser at {url}")
 
     # Setup file watcher if live reload is enabled
     watcher = None

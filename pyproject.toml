@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "nitro-cli"
 version = "0.1.0"
-description = "A CLI tool for building static websites with YDNATL"
+description = "A CLI tool for building static websites with nitro-ui"
 authors = [
     {name = "Sean Nieuwoudt", email = "team@nitro.sh"}
 ]

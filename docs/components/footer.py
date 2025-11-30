@@ -1,4 +1,4 @@
-from ydnatl import Fragment, Footer
+from nitro_ui import Fragment, Footer
 
 
 class FooterComponent(Fragment):

@@ -36,12 +36,11 @@ def render():
         Paragraph("✓ Production-ready builds"),
         Paragraph("✓ Data loading with nitro-datastore"),
         Paragraph("✓ Plugin system with nitro-dispatch"),
+        class_name="content"
     )
-    content_div.add_attribute("class", "content")
 
     # Create container div
-    container = Div(content_div)
-    container.add_attribute("class", "container")
+    container = Div(content_div, class_name="container")
 
     # Create page
     page = HTML(

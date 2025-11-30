@@ -1,4 +1,4 @@
-from ydnatl import Fragment, Header, Link, Nav
+from nitro_ui import Fragment, Header, Link, Nav
 
 
 HeaderComponent = Fragment(

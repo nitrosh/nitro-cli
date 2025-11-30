@@ -1,6 +1,6 @@
 # My Website
 
-A static website built with Nitro CLI and YDNATL.
+A static website built with Nitro CLI and nitro-ui.
 
 ## Getting Started
 
@@ -31,7 +31,7 @@ nitro build
 ## Project Structure
 
 - `src/pages/` - Page definitions (route = file path)
-- `src/components/` - Reusable YDNATL components
+- `src/components/` - Reusable nitro-ui components
 - `src/layouts/` - Page layouts/templates
 - `src/data/` - Data files (JSON/YAML)
 - `src/styles/` - CSS stylesheets
@@ -41,4 +41,4 @@ nitro build
 ## Learn More
 
 - [Nitro CLI Documentation](https://github.com/nitro-sh/nitro-cli)
-- [YDNATL Documentation](https://github.com/sn/ydnatl)
+- [nitro-ui Documentation](https://github.com/nitro-sh/nitro-ui)

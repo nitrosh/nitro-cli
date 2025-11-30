@@ -16,6 +16,6 @@ config = Config(
     metadata={
         "author": "Your Name",
         "description": "A website built with Nitro",
-        "keywords": ["nitro", "static site", "ydnatl"],
+        "keywords": ["nitro", "static site", "nitro-ui"],
     },
 )

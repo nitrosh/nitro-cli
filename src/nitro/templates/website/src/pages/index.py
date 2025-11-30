@@ -11,8 +11,8 @@ from nitro_ui import (
     H1,
     H2,
     Paragraph,
-    UnorderedList,
-    ListItem,
+    Ul,
+    Li,
 )
 from nitro import Page, load_data
 import sys
@@ -41,11 +41,10 @@ def render():
     # Build feature list from data
     feature_items = []
     for feature in data.features:
-        item = ListItem(f"{feature['name']}: {feature['description']}")
+        item = Li(f"{feature['name']}: {feature['description']}")
         feature_items.append(item)
 
-    features_list = UnorderedList(*feature_items)
-    features_list.add_attribute("class", "feature-list")
+    features_list = Ul(*feature_items, class_name="feature-list")
 
     # Create content div
     content_div = Div(
@@ -58,12 +57,11 @@ def render():
         ),
         H2("Features"),
         features_list,
+        class_name="content"
     )
-    content_div.add_attribute("class", "content")
 
     # Create container div
-    container = Div(content_div)
-    container.add_attribute("class", "container")
+    container = Div(content_div, class_name="container")
 
     # Create page
     page = HTML(
