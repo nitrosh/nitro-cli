@@ -46,7 +46,7 @@ dependencies = [
     "csscompressor>=0.9.5",
     "htmlmin>=0.1.12",
     "pillow>=9.0.0",
-    "nitro-ui>=1.0.0",
+    "nitro-ui>=1.0.1",
     "nitro-datastore>=1.0.0",
     "nitro-dispatch>=1.0.0",
 ]
