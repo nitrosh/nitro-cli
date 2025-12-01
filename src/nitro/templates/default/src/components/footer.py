@@ -12,9 +12,13 @@ def Footer():
     return UIFooter(
         Paragraph(
             "Built with ",
-            Href("Nitro", href="https://github.com/nitro-sh/nitro-cli", target="_blank"),
+            Href(
+                "Nitro", href="https://github.com/nitro-sh/nitro-cli", target="_blank"
+            ),
             " and ",
-            Href("nitro-ui", href="https://github.com/nitrosh/nitro-ui", target="_blank"),
+            Href(
+                "nitro-ui", href="https://github.com/nitrosh/nitro-ui", target="_blank"
+            ),
         ),
         class_name="footer",
     )

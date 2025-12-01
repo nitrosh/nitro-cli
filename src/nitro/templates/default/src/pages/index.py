@@ -135,13 +135,13 @@ def render():
         Div(
             Pre(
                 Code(
-                    '''from nitro_ui import HTML, Head, Body, H1
+                    """from nitro_ui import HTML, Head, Body, H1
 
 def render():
     return HTML(
         Head(Title("My Page")),
         Body(H1("Hello, World!"))
-    )''',
+    )""",
                     class_name="language-python",
                 ),
                 class_name="code-block",

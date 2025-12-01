@@ -28,10 +28,10 @@ from rich.traceback import Traceback
 class LogLevel(IntEnum):
     """Log verbosity levels."""
 
-    QUIET = 0    # Only errors and final summary
-    NORMAL = 1   # Key milestones (default)
+    QUIET = 0  # Only errors and final summary
+    NORMAL = 1  # Key milestones (default)
     VERBOSE = 2  # Detailed per-file output
-    DEBUG = 3    # Full debug information
+    DEBUG = 3  # Full debug information
 
 
 # Custom theme for Nitro CLI

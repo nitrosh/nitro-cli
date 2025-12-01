@@ -42,6 +42,7 @@ class Bundler:
                     # Minify CSS
                     try:
                         import csscompressor
+
                         content = css_file.read_text()
                         minified = csscompressor.compress(content)
                         css_file.write_text(minified)
