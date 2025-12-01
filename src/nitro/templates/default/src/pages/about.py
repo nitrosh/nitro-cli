@@ -6,7 +6,7 @@ from nitro_ui import (
     Body,
     Title,
     Meta,
-    HtmlLink,
+    Link,
     Main,
     Div,
     H1,
@@ -68,7 +68,7 @@ def render():
             Meta(charset="UTF-8"),
             Meta(name="viewport", content="width=device-width, initial-scale=1.0"),
             Title(f"About - {site_name}"),
-            HtmlLink(rel="stylesheet", href="/assets/styles/main.css"),
+            Link(rel="stylesheet", href="/assets/styles/main.css"),
         ),
         Body(
             Header(site_name),

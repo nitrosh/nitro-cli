@@ -6,7 +6,7 @@ from nitro_ui import (
     Body,
     Title,
     Meta,
-    HtmlLink,
+    Link,
     Main,
     Section,
     Div,
@@ -14,7 +14,7 @@ from nitro_ui import (
     H2,
     H3,
     Paragraph,
-    Link,
+    Href,
     Span,
     Code,
     Pre,
@@ -41,8 +41,8 @@ def render():
             H1(site_name, class_name="hero-title"),
             Paragraph(site_tagline, class_name="hero-tagline"),
             Div(
-                Link("Get Started", href="#quickstart", class_name="btn btn-primary"),
-                Link("Learn More", href="/about.html", class_name="btn btn-secondary"),
+                Href("Get Started", href="#quickstart", class_name="btn btn-primary"),
+                Href("Learn More", href="/about.html", class_name="btn btn-secondary"),
                 class_name="hero-actions",
             ),
             class_name="hero-content",
@@ -162,7 +162,7 @@ def render():
         Div(
             H2("Ready to build something amazing?"),
             Paragraph("Start editing this template and make it your own."),
-            Link(
+            Href(
                 "Read the Docs",
                 href="https://github.com/nitro-sh/nitro-cli",
                 target="_blank",
@@ -179,7 +179,7 @@ def render():
             Meta(name="viewport", content="width=device-width, initial-scale=1.0"),
             Title(f"{site_name} - {site_tagline}"),
             Meta(name="description", content=site_tagline),
-            HtmlLink(rel="stylesheet", href="/assets/styles/main.css"),
+            Link(rel="stylesheet", href="/assets/styles/main.css"),
         ),
         Body(
             Header(site_name),
