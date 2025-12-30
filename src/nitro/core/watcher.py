@@ -19,13 +19,6 @@ class NitroFileHandler(FileSystemEventHandler):
         on_change: Callable[[Path], None],
         debounce_seconds: float = 0.5,
     ):
-        """Initialize file handler.
-
-        Args:
-            project_root: Root directory of project
-            on_change: Callback function when files change
-            debounce_seconds: Debounce delay to prevent multiple triggers
-        """
         super().__init__()
         self.project_root = project_root
         self.on_change = on_change
@@ -33,20 +26,13 @@ class NitroFileHandler(FileSystemEventHandler):
         self.last_modified: dict[str, float] = {}
 
     def on_modified(self, event: FileSystemEvent) -> None:
-        """Handle file modification events.
-
-        Args:
-            event: File system event
-        """
         if event.is_directory:
             return
 
-        # Ignore certain files
         path = Path(event.src_path)
         if self._should_ignore(path):
             return
 
-        # Debounce rapid changes
         current_time = time.time()
         last_time = self.last_modified.get(event.src_path, 0)
 
@@ -54,16 +40,9 @@ class NitroFileHandler(FileSystemEventHandler):
             return
 
         self.last_modified[event.src_path] = current_time
-
-        # Trigger callback
         self.on_change(path)
 
     def on_created(self, event: FileSystemEvent) -> None:
-        """Handle file creation events.
-
-        Args:
-            event: File system event
-        """
         if event.is_directory:
             return
 
@@ -75,24 +54,9 @@ class NitroFileHandler(FileSystemEventHandler):
         self.on_change(path)
 
     def _should_ignore(self, path: Path) -> bool:
-        """Check if file should be ignored.
-
-        Args:
-            path: File path
-
-        Returns:
-            True if should ignore
-        """
         ignore_patterns = [
-            "__pycache__",
-            ".pyc",
-            ".pyo",
-            ".git",
-            ".nitro",
-            "build/",
-            ".idea",
-            ".vscode",
-            ".DS_Store",
+            "__pycache__", ".pyc", ".pyo", ".git", ".nitro",
+            "build/", ".idea", ".vscode", ".DS_Store",
         ]
 
         path_str = str(path)
@@ -100,7 +64,6 @@ class NitroFileHandler(FileSystemEventHandler):
             if pattern in path_str:
                 return True
 
-        # Ignore editor temp/backup files
         name = path.name
         if name.endswith("~") or name.startswith(".#") or name.endswith(".swp"):
             return True
@@ -112,13 +75,6 @@ class Watcher:
     """File watcher for automatic regeneration."""
 
     def __init__(self, project_root: Path, on_change: Callable[[Path], None]):
-        """
-        Initialize watcher.
-
-        Args:
-            project_root: Root directory of project
-            on_change: Callback function when files change
-        """
         self.project_root = project_root
         self.on_change = on_change
         self.observer: Optional[Observer] = None
@@ -128,15 +84,12 @@ class Watcher:
         info("Starting file watcher...")
 
         event_handler = NitroFileHandler(self.project_root, self.on_change)
-
         self.observer = Observer()
 
-        # Watch source directory
         src_path = self.project_root / "src"
         if src_path.exists():
             self.observer.schedule(event_handler, str(src_path), recursive=True)
 
-        # Watch config file
         config_path = self.project_root / "nitro.config.py"
         if config_path.exists():
             self.observer.schedule(
@@ -152,11 +105,3 @@ class Watcher:
             self.observer.stop()
             self.observer.join()
             info("File watcher stopped")
-
-    def is_running(self) -> bool:
-        """Check if watcher is running.
-
-        Returns:
-            True if running
-        """
-        return self.observer is not None and self.observer.is_alive()
