@@ -10,7 +10,7 @@ from rich.panel import Panel
 from rich.box import ROUNDED
 
 from ..core.config import load_config
-from ..core.project import get_project_root
+from ..core.page import get_project_root
 from ..utils import console, banner
 
 

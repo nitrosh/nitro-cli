@@ -8,9 +8,8 @@ import os
 
 from ..core.config import Config, load_config
 from ..core.renderer import Renderer
-from ..core.project import get_project_root
+from ..core.page import get_project_root
 from ..core.cache import BuildCache
-from ..core.markdown import MarkdownProcessor, MarkdownDocument
 from ..plugins import PluginLoader
 from ..utils import success, error, info, warning, console
 from rich.progress import (
@@ -309,12 +308,6 @@ class Generator:
         # Copy assets
         self._copy_assets(verbose)
 
-        # Generate pages from Markdown content (if content directory exists)
-        content_dir = self.source_dir / "content"
-        if content_dir.exists():
-            console.print("\n[dim]─── Processing Markdown Content [/dim]")
-            self.generate_markdown_pages(content_dir, verbose=verbose)
-
         success("Site generation complete!")
         return True
 
@@ -475,120 +468,3 @@ class Generator:
             return True
 
         return False
-
-    def generate_markdown_pages(
-        self,
-        content_dir: Optional[Path] = None,
-        output_subdir: str = "",
-        template_func: Optional[callable] = None,
-        verbose: bool = False,
-    ) -> int:
-        """Generate HTML pages from Markdown files.
-
-        Args:
-            content_dir: Directory containing markdown files (default: src/content)
-            output_subdir: Subdirectory in build for output (e.g., "blog")
-            template_func: Function to wrap content in HTML (receives MarkdownDocument)
-            verbose: Enable verbose output
-
-        Returns:
-            Number of pages generated
-        """
-        if content_dir is None:
-            content_dir = self.source_dir / "content"
-
-        if not content_dir.exists():
-            return 0
-
-        # Initialize markdown processor
-        processor = MarkdownProcessor()
-
-        # Find all markdown files
-        documents = processor.find_content_files(content_dir, include_drafts=False)
-
-        if not documents:
-            return 0
-
-        info(f"Found {len(documents)} markdown file(s) in {content_dir}")
-
-        count = 0
-        for doc in documents:
-            try:
-                # Determine output path
-                if doc.slug:
-                    output_name = f"{doc.slug}.html"
-                elif doc.path:
-                    output_name = f"{doc.path.stem}.html"
-                else:
-                    continue
-
-                if output_subdir:
-                    output_path = self.build_dir / output_subdir / output_name
-                else:
-                    output_path = self.build_dir / output_name
-
-                # Generate HTML
-                if template_func:
-                    html = template_func(doc)
-                else:
-                    html = self._default_markdown_template(doc)
-
-                # Write file
-                output_path.parent.mkdir(parents=True, exist_ok=True)
-                output_path.write_text(html)
-                count += 1
-
-                if verbose:
-                    console.print(f"  → {output_path.relative_to(self.project_root)}")
-
-            except Exception as e:
-                error(f"Error generating {doc.path}: {e}")
-
-        if count > 0:
-            success(f"Generated {count} page(s) from Markdown")
-
-        return count
-
-    def _default_markdown_template(self, doc: MarkdownDocument) -> str:
-        """Default HTML template for markdown content.
-
-        Args:
-            doc: Parsed markdown document
-
-        Returns:
-            HTML string
-        """
-        title = doc.title or "Untitled"
-        date_str = ""
-        if doc.date:
-            date_str = f'<time datetime="{doc.date.isoformat()}">{doc.date.strftime("%B %d, %Y")}</time>'
-
-        tags_html = ""
-        if doc.tags:
-            tags_html = (
-                '<div class="tags">'
-                + "".join(f'<span class="tag">{tag}</span>' for tag in doc.tags)
-                + "</div>"
-            )
-
-        return f"""<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{title}</title>
-    <link rel="stylesheet" href="/assets/styles/main.css">
-</head>
-<body>
-    <article class="content">
-        <header>
-            <h1>{title}</h1>
-            {date_str}
-            {tags_html}
-        </header>
-        <main>
-            {doc.content}
-        </main>
-    </article>
-</body>
-</html>"""

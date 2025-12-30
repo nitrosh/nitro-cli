@@ -1,4 +1,5 @@
-"""Image optimization pipeline for Nitro.
+"""
+Image optimization pipeline for Nitro.
 
 Features:
 - Responsive image generation (multiple sizes)
@@ -12,10 +13,9 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, List, Optional
 import hashlib
-import json
 import re
 
-from ..utils import success, warning, error
+from ..utils import warning, error
 
 
 @dataclass
@@ -447,139 +447,3 @@ class ImageOptimizer:
             return self.generate_picture_element(optimized, alt, css_class, sizes)
 
         return img_pattern.sub(replace_img, html_content)
-
-    def optimize_directory(
-        self,
-        source_dir: Path,
-        output_dir: Path,
-        base_url: str = "",
-    ) -> int:
-        """Optimize all images in a directory.
-
-        Args:
-            source_dir: Source directory with images
-            output_dir: Output directory for optimized images
-            base_url: Base URL for image paths
-
-        Returns:
-            Number of images optimized
-        """
-        if not self._check_pillow():
-            return 0
-
-        count = 0
-        image_extensions = {".jpg", ".jpeg", ".png", ".gif"}
-
-        for img_path in source_dir.rglob("*"):
-            if img_path.suffix.lower() in image_extensions:
-                result = self.optimize_image(img_path, output_dir, base_url)
-                if result:
-                    count += 1
-
-        if count > 0:
-            success(f"Optimized {count} image(s)")
-
-        return count
-
-    def save_manifest(self, output_path: Path) -> None:
-        """Save image manifest for caching.
-
-        Args:
-            output_path: Path for manifest file
-        """
-        manifest = {}
-        for key, img in self._cache.items():
-            manifest[key] = {
-                "original": str(img.original_path),
-                "width": img.original_width,
-                "height": img.original_height,
-                "hash": img.hash,
-                "variants": {
-                    fmt: {str(w): str(p) for w, p in widths.items()}
-                    for fmt, widths in img.variants.items()
-                },
-            }
-
-        output_path.write_text(json.dumps(manifest, indent=2))
-
-    def load_manifest(self, manifest_path: Path) -> None:
-        """Load image manifest from previous build.
-
-        Args:
-            manifest_path: Path to manifest file
-        """
-        if not manifest_path.exists():
-            return
-
-        try:
-            data = json.loads(manifest_path.read_text())
-            for key, img_data in data.items():
-                self._cache[key] = OptimizedImage(
-                    original_path=Path(img_data["original"]),
-                    original_width=img_data["width"],
-                    original_height=img_data["height"],
-                    hash=img_data["hash"],
-                    variants={
-                        fmt: {int(w): Path(p) for w, p in widths.items()}
-                        for fmt, widths in img_data["variants"].items()
-                    },
-                )
-        except Exception as e:
-            warning(f"Failed to load image manifest: {e}")
-
-
-# Helper functions for use in templates
-def responsive_image(
-    src: str,
-    alt: str = "",
-    css_class: str = "",
-    sizes: str = "(max-width: 640px) 100vw, 50vw",
-    widths: List[int] = None,
-) -> str:
-    """Generate a responsive image tag (for use in templates).
-
-    This is a simpler version that just adds srcset without format conversion.
-
-    Args:
-        src: Image source path
-        alt: Alt text
-        css_class: CSS class
-        sizes: sizes attribute
-        widths: List of widths for srcset
-
-    Returns:
-        HTML img tag with srcset
-    """
-    if widths is None:
-        widths = [320, 640, 1024, 1920]
-
-    # Build srcset (assumes images are pre-generated)
-    path = Path(src)
-    srcset_parts = []
-    for w in widths:
-        variant_name = f"{path.stem}-{w}w{path.suffix}"
-        variant_path = path.parent / variant_name
-        srcset_parts.append(f"{variant_path} {w}w")
-
-    srcset = ", ".join(srcset_parts)
-    class_attr = f'class="{css_class}"' if css_class else ""
-
-    return (
-        f'<img src="{src}" srcset="{srcset}" sizes="{sizes}" '
-        f'alt="{alt}" {class_attr} loading="lazy">'
-    )
-
-
-def lazy_image(src: str, alt: str = "", css_class: str = "") -> str:
-    """Generate a lazy-loaded image tag.
-
-    Args:
-        src: Image source
-        alt: Alt text
-        css_class: CSS class
-
-    Returns:
-        HTML img tag with lazy loading
-    """
-    class_attr = f'class="{css_class}"' if css_class else ""
-    return f'<img src="{src}" alt="{alt}" {class_attr} loading="lazy">'

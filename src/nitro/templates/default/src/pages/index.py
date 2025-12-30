@@ -19,7 +19,8 @@ from nitro_ui import (
     Code,
     Pre,
 )
-from nitro import Page, load_data
+from nitro import Page
+from nitro_datastore import NitroDataStore
 import sys
 from pathlib import Path
 
@@ -31,7 +32,7 @@ from components.footer import Footer
 
 def render():
     """Render the home page."""
-    data = load_data("src/data/site.json")
+    data = NitroDataStore.from_file("src/data/site.json")
     site_name = data.site.name
     site_tagline = data.site.tagline
 

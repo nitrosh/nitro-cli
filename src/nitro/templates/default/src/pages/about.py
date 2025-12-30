@@ -15,7 +15,8 @@ from nitro_ui import (
     UnorderedList,
     ListItem,
 )
-from nitro import Page, load_data
+from nitro import Page
+from nitro_datastore import NitroDataStore
 import sys
 from pathlib import Path
 
@@ -27,7 +28,7 @@ from components.footer import Footer
 
 def render():
     """Render the about page."""
-    data = load_data("src/data/site.json")
+    data = NitroDataStore.from_file("src/data/site.json")
     site_name = data.site.name
 
     content = Div(

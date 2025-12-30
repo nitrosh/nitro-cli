@@ -6,7 +6,7 @@ from pathlib import Path
 import click
 
 from ..core.config import load_config
-from ..core.project import get_project_root
+from ..core.page import get_project_root
 from ..utils import info, success, warning, error, banner, newline
 
 

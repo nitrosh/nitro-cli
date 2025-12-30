@@ -6,7 +6,7 @@ from rich.text import Text
 from rich.table import Table
 from . import __version__
 from .commands import new, serve, dev, build, preview, clean, info, deploy, test, docs
-from .core.project import get_project_root
+from .core.page import get_project_root
 
 console = Console()
 
@@ -60,7 +60,7 @@ def show_welcome():
     console.print(table)
 
     footer = Text()
-    footer.append("\nRun ", style="dim")
+    footer.append("\nRun", style="dim")
     footer.append(" nitro <command> --help", style="cyan")
     footer.append(" for more options\n", style="dim")
     console.print(footer)

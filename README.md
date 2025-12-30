@@ -8,8 +8,6 @@ A static site generator that lets you build websites using Python and [nitro-ui]
 - **Live Reload** - Development server with automatic browser refresh
 - **Incremental Builds** - Only rebuild changed pages
 - **Dynamic Routes** - Generate pages from data with `[slug].py` pattern
-- **Markdown Support** - Content with YAML frontmatter
-- **Content Collections** - Typed content with schema validation
 - **Image Optimization** - Responsive images with WebP/AVIF conversion
 - **Islands Architecture** - Partial hydration for interactive components
 - **One-Click Deploy** - Netlify, Vercel, or Cloudflare Pages
@@ -57,10 +55,11 @@ Generate multiple pages from data using `[param].py` naming:
 
 ```python
 # src/pages/blog/[slug].py
-from nitro import Page, load_data
+from nitro import Page
+from nitro_datastore import NitroDataStore
 
 def get_paths():
-    data = load_data("src/data/posts.json")
+    data = NitroDataStore.from_file("src/data/posts.json")
     return [{"slug": p["slug"], "title": p["title"]} for p in data.posts]
 
 def render(slug, title):
@@ -89,7 +88,6 @@ from nitro import Config
 config = Config(
     site_name="My Site",
     base_url="https://mysite.com",
-    dev_server={"port": 3000},
     renderer={"minify_html": True}
 )
 ```

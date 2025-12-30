@@ -1,6 +1,5 @@
 """Development server for Nitro sites."""
 
-import asyncio
 import mimetypes
 from pathlib import Path
 from typing import Set, Optional
@@ -21,15 +20,6 @@ class LiveReloadServer:
         port: int = 3000,
         enable_reload: bool = True,
     ):
-        """
-        Initialize server.
-
-        Args:
-            build_dir: Directory containing built files
-            host: Host address
-            port: Port number
-            enable_reload: Enable live reload
-        """
         self.build_dir = build_dir
         self.host = host
         self.port = port
@@ -37,43 +27,21 @@ class LiveReloadServer:
         self.app = web.Application()
         self.websockets: Set[web.WebSocketResponse] = set()
         self.runner: Optional[web.AppRunner] = None
-
-        # Setup routes
         self._setup_routes()
-
-        # Initialize MIME types
         mimetypes.init()
 
     def _setup_routes(self) -> None:
-        """Setup HTTP routes."""
         self.app.router.add_get("/", self.handle_index)
         self.app.router.add_get("/__nitro__/livereload", self.handle_websocket)
         self.app.router.add_get("/__nitro__/livereload.js", self.handle_livereload_js)
         self.app.router.add_get("/{path:.*}", self.handle_static)
 
     async def handle_index(self, request: web.Request) -> web.Response:
-        """Handle index page request.
-
-        Args:
-            request: HTTP request
-
-        Returns:
-            HTTP response
-        """
         return await self.serve_file("index.html")
 
     async def handle_static(self, request: web.Request) -> web.Response:
-        """Handle static file requests.
-
-        Args:
-            request: HTTP request
-
-        Returns:
-            HTTP response
-        """
         path = request.match_info["path"]
 
-        # If no extension, try adding .html
         if not Path(path).suffix:
             html_path = f"{path}.html" if path else "index.html"
             return await self.serve_file(html_path)
@@ -81,17 +49,8 @@ class LiveReloadServer:
         return await self.serve_file(path)
 
     async def serve_file(self, path: str) -> web.Response:
-        """Serve a file from build directory.
-
-        Args:
-            path: File path
-
-        Returns:
-            HTTP response
-        """
         file_path = self.build_dir / path
 
-        # Security: Prevent path traversal attacks
         try:
             resolved_path = file_path.resolve()
             build_dir_resolved = self.build_dir.resolve()
@@ -101,7 +60,6 @@ class LiveReloadServer:
             return web.Response(text="Forbidden", status=403)
 
         if not file_path.exists():
-            # Try without .html
             if file_path.suffix == ".html":
                 alt_path = self.build_dir / path.replace(".html", "")
                 if alt_path.exists():
@@ -115,12 +73,10 @@ class LiveReloadServer:
             async with aiofiles.open(file_path, "rb") as f:
                 content = await f.read()
 
-            # Get MIME type
             mime_type, _ = mimetypes.guess_type(str(file_path))
             if mime_type is None:
                 mime_type = "application/octet-stream"
 
-            # Inject live reload script for HTML files
             if self.enable_reload and mime_type == "text/html":
                 content = self._inject_livereload(content)
 
@@ -131,34 +87,15 @@ class LiveReloadServer:
             return web.Response(text="Internal Server Error", status=500)
 
     def _inject_livereload(self, html_content: bytes) -> bytes:
-        """Inject live reload script into HTML.
-
-        Args:
-            html_content: Original HTML content
-
-        Returns:
-            Modified HTML content
-        """
         livereload_script = b"""
 <script src="/__nitro__/livereload.js"></script>
 </body>"""
 
-        # Try to inject before closing body tag
         if b"</body>" in html_content:
             return html_content.replace(b"</body>", livereload_script)
-
-        # Fallback: append to end
         return html_content + livereload_script
 
     async def handle_websocket(self, request: web.Request) -> web.WebSocketResponse:
-        """Handle WebSocket connections for live reload.
-
-        Args:
-            request: HTTP request
-
-        Returns:
-            WebSocket response
-        """
         ws = web.WebSocketResponse()
         await ws.prepare(request)
 
@@ -171,7 +108,6 @@ class LiveReloadServer:
                     error(f"WebSocket error: {ws.exception()}")
         finally:
             self.websockets.discard(ws)
-            # Explicitly close the WebSocket connection
             if not ws.closed:
                 await ws.close()
             info(f"Client disconnected (total: {len(self.websockets)})")
@@ -179,14 +115,6 @@ class LiveReloadServer:
         return ws
 
     async def handle_livereload_js(self, request: web.Request) -> web.Response:
-        """Serve live reload JavaScript client.
-
-        Args:
-            request: HTTP request
-
-        Returns:
-            HTTP response with JavaScript
-        """
         js_content = """
 (function() {
     console.log('[Nitro] Live reload enabled');
@@ -211,7 +139,6 @@ class LiveReloadServer:
 
     ws.onclose = function() {
         console.log('[Nitro] Disconnected from live reload server');
-        // Try to reconnect after 1 second
         setTimeout(function() {
             window.location.reload();
         }, 1000);
@@ -231,8 +158,6 @@ class LiveReloadServer:
 
         message = '{"type": "reload"}'
 
-        # Send reload message to all connected clients
-        # Copy the set to avoid modification during iteration (race condition)
         dead_sockets = set()
         for ws in list(self.websockets):
             try:
@@ -240,7 +165,6 @@ class LiveReloadServer:
             except Exception:
                 dead_sockets.add(ws)
 
-        # Clean up dead connections
         self.websockets -= dead_sockets
 
         if self.websockets:
@@ -260,7 +184,6 @@ class LiveReloadServer:
 
     async def stop(self) -> None:
         """Stop the server gracefully."""
-        # Close all WebSocket connections first
         if self.websockets:
             for ws in list(self.websockets):
                 try:
@@ -270,19 +193,6 @@ class LiveReloadServer:
                     pass
             self.websockets.clear()
 
-        # Cleanup the runner (stops accepting new connections)
         if self.runner:
             await self.runner.cleanup()
             info("Server stopped")
-
-    async def run_forever(self) -> None:
-        """Run the server forever."""
-        await self.start()
-
-        try:
-            # Keep running
-            await asyncio.Event().wait()
-        except asyncio.CancelledError:
-            pass
-        finally:
-            await self.stop()

@@ -9,34 +9,14 @@ Hydration strategies:
 - visible: Hydrate when component is visible (IntersectionObserver)
 - media: Hydrate when media query matches
 - interaction: Hydrate on first user interaction (click, focus, etc.)
-
-Usage in templates:
-    from nitro.core.islands import Island, island
-
-    # Create an island with a component
-    counter = Island(
-        name="counter",
-        component=Counter,
-        props={"initial": 0},
-        client="visible"  # Hydration strategy
-    )
-
-    # In your page:
-    def render():
-        return Div(
-            H1("My Page"),
-            counter.render(),  # Renders static HTML + hydration marker
-        )
 """
 
 from dataclasses import dataclass, field
-from pathlib import Path
-from typing import Any, Dict, List, Literal, Optional
+from typing import Any, Dict, Literal, Optional
 import hashlib
 import json
-import re
 
-from ..utils import info, warning
+from ..utils import warning
 
 
 # Hydration strategies
@@ -82,11 +62,7 @@ class Island:
         self._id = f"{self.name}-{props_hash}"
 
     def render(self) -> str:
-        """Render the island with hydration markers.
-
-        Returns:
-            HTML string with island wrapper and hydration data
-        """
+        """Render the island with hydration markers."""
         # Render the component (server-side)
         if self.client_only:
             inner_html = "<!-- Island loading... -->"
@@ -131,124 +107,14 @@ class Island:
         return self.render()
 
 
-def island(
-    component: Any,
-    name: Optional[str] = None,
-    client: HydrationStrategy = "idle",
-    **props,
-) -> Island:
-    """Create an island from a component.
-
-    This is a convenience function for creating islands inline.
-
-    Args:
-        component: The component to wrap
-        name: Island name (auto-generated if not provided)
-        client: Hydration strategy
-        **props: Props to pass to the component
-
-    Returns:
-        Island instance
-    """
-    if name is None:
-        # Try to get name from component
-        if hasattr(component, "__name__"):
-            name = component.__name__.lower()
-        elif hasattr(component, "__class__"):
-            name = component.__class__.__name__.lower()
-        else:
-            name = "island"
-
-    return Island(
-        name=name,
-        component=component,
-        props=props,
-        client=client,
-    )
-
-
-class IslandRegistry:
-    """Registry for tracking islands used in a build."""
-
-    def __init__(self):
-        self._islands: Dict[str, Island] = {}
-        self._scripts: Dict[str, str] = {}
-
-    def register(self, island: Island) -> None:
-        """Register an island.
-
-        Args:
-            island: Island to register
-        """
-        self._islands[island._id] = island
-
-    def get(self, island_id: str) -> Optional[Island]:
-        """Get an island by ID.
-
-        Args:
-            island_id: Island ID
-
-        Returns:
-            Island or None
-        """
-        return self._islands.get(island_id)
-
-    def register_script(self, name: str, script: str) -> None:
-        """Register a client-side script for an island.
-
-        Args:
-            name: Island name
-            script: JavaScript code
-        """
-        self._scripts[name] = script
-
-    def get_all_scripts(self) -> Dict[str, str]:
-        """Get all registered scripts.
-
-        Returns:
-            Dictionary of island name to script
-        """
-        return self._scripts
-
-    def clear(self) -> None:
-        """Clear all registered islands."""
-        self._islands.clear()
-        self._scripts.clear()
-
-
-# Global registry
-_registry = IslandRegistry()
-
-
-def get_registry() -> IslandRegistry:
-    """Get the global island registry.
-
-    Returns:
-        IslandRegistry instance
-    """
-    return _registry
-
-
 class IslandProcessor:
     """Processes HTML to handle islands."""
 
     def __init__(self, config: Optional[IslandConfig] = None):
-        """Initialize the island processor.
-
-        Args:
-            config: Island configuration
-        """
         self.config = config or IslandConfig()
-        self.registry = get_registry()
 
     def generate_hydration_script(self) -> str:
-        """Generate the client-side hydration script.
-
-        This script handles hydrating all islands based on their strategy.
-
-        Returns:
-            JavaScript code
-        """
+        """Generate the client-side hydration script."""
         debug_code = (
             "console.log('[Islands] Initializing...');" if self.config.debug else ""
         )
@@ -388,15 +254,7 @@ class IslandProcessor:
         html_content: str,
         inject_script: bool = True,
     ) -> str:
-        """Process HTML and inject hydration script if islands are present.
-
-        Args:
-            html_content: HTML content
-            inject_script: Whether to inject the hydration script
-
-        Returns:
-            Processed HTML
-        """
+        """Process HTML and inject hydration script if islands are present."""
         # Check if there are any islands
         if "data-island=" not in html_content:
             return html_content
@@ -415,151 +273,3 @@ class IslandProcessor:
             html_content += script_tag
 
         return html_content
-
-    def extract_islands(self, html_content: str) -> List[Dict]:
-        """Extract all islands from HTML content.
-
-        Args:
-            html_content: HTML content
-
-        Returns:
-            List of island info dictionaries
-        """
-        pattern = re.compile(
-            r'<div\s+data-island="([^"]+)"\s+data-island-id="([^"]+)"[^>]*>',
-            re.IGNORECASE,
-        )
-
-        islands = []
-        for match in pattern.finditer(html_content):
-            islands.append(
-                {
-                    "name": match.group(1),
-                    "id": match.group(2),
-                }
-            )
-
-        return islands
-
-    def write_island_scripts(
-        self,
-        output_dir: Path,
-        scripts: Dict[str, str],
-    ) -> List[Path]:
-        """Write island component scripts to files.
-
-        Args:
-            output_dir: Output directory
-            scripts: Dictionary of island name to script content
-
-        Returns:
-            List of written file paths
-        """
-        islands_dir = output_dir / self.config.output_dir
-        islands_dir.mkdir(parents=True, exist_ok=True)
-
-        written = []
-        for name, script in scripts.items():
-            script_path = islands_dir / f"{name}.js"
-            script_path.write_text(script)
-            written.append(script_path)
-
-        if written:
-            info(f"Wrote {len(written)} island script(s)")
-
-        return written
-
-
-# Decorator for creating island components
-def client_component(
-    strategy: HydrationStrategy = "idle",
-    name: Optional[str] = None,
-):
-    """Decorator to mark a component as a client-side island.
-
-    Usage:
-        @client_component(strategy="visible")
-        def Counter(initial=0):
-            return Div(f"Count: {initial}")
-
-    Args:
-        strategy: Hydration strategy
-        name: Optional custom name
-
-    Returns:
-        Decorator function
-    """
-
-    def decorator(func):
-        component_name = name or func.__name__.lower()
-
-        def wrapper(**props):
-            return Island(
-                name=component_name,
-                component=func,
-                props=props,
-                client=strategy,
-            )
-
-        wrapper.__name__ = func.__name__
-        wrapper.__doc__ = func.__doc__
-        wrapper._is_island = True
-        wrapper._strategy = strategy
-        wrapper._component_name = component_name
-
-        return wrapper
-
-    return decorator
-
-
-# Pre-defined island creators for common patterns
-def lazy_island(component: Any, **props) -> Island:
-    """Create a lazily-hydrated island (on visible).
-
-    Args:
-        component: Component to wrap
-        **props: Component props
-
-    Returns:
-        Island instance
-    """
-    return island(component, client="visible", **props)
-
-
-def eager_island(component: Any, **props) -> Island:
-    """Create an eagerly-hydrated island (on load).
-
-    Args:
-        component: Component to wrap
-        **props: Component props
-
-    Returns:
-        Island instance
-    """
-    return island(component, client="load", **props)
-
-
-def interactive_island(component: Any, **props) -> Island:
-    """Create an island that hydrates on interaction.
-
-    Args:
-        component: Component to wrap
-        **props: Component props
-
-    Returns:
-        Island instance
-    """
-    return island(component, client="interaction", **props)
-
-
-def static_island(component: Any, **props) -> Island:
-    """Create an island that never hydrates (static only).
-
-    Args:
-        component: Component to wrap
-        **props: Component props
-
-    Returns:
-        Island instance
-    """
-    return island(component, client="none", **props)
