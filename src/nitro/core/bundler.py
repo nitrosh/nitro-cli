@@ -32,7 +32,9 @@ class Bundler:
                         css_file.write_text(minified)
                         count += 1
                     except ImportError:
-                        warning("csscompressor not installed, skipping CSS minification")
+                        warning(
+                            "csscompressor not installed, skipping CSS minification"
+                        )
                         break
             except Exception as e:
                 error(f"Error optimizing {css_file.name}: {e}")
@@ -107,12 +109,14 @@ class Bundler:
             mtime = datetime.fromtimestamp(html_file.stat().st_mtime)
             lastmod = mtime.strftime("%Y-%m-%d")
 
-            urls.append({
-                "loc": full_url,
-                "lastmod": lastmod,
-                "changefreq": "weekly",
-                "priority": "1.0" if url_path == "" else "0.8",
-            })
+            urls.append(
+                {
+                    "loc": full_url,
+                    "lastmod": lastmod,
+                    "changefreq": "weekly",
+                    "priority": "1.0" if url_path == "" else "0.8",
+                }
+            )
 
         xml_lines = [
             '<?xml version="1.0" encoding="UTF-8"?>',
@@ -160,6 +164,7 @@ Sitemap: {sitemap_url}
                 }
 
         import json
+
         output_path.write_text(json.dumps(manifest, indent=2))
         success(f"Created asset manifest with {len(manifest)} file(s)")
 

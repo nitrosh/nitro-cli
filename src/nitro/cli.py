@@ -5,7 +5,7 @@ from rich.console import Console
 from rich.text import Text
 from rich.table import Table
 from . import __version__
-from .commands import new, serve, dev, build, preview, clean, info, deploy, test, docs
+from .commands import new, serve, dev, build, preview, clean, info, deploy
 from .core.page import get_project_root
 
 console = Console()
@@ -87,8 +87,6 @@ main.add_command(preview)
 main.add_command(clean)
 main.add_command(info)
 main.add_command(deploy)
-main.add_command(test)
-main.add_command(docs)
 
 
 if __name__ == "__main__":

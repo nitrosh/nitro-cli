@@ -55,8 +55,15 @@ class NitroFileHandler(FileSystemEventHandler):
 
     def _should_ignore(self, path: Path) -> bool:
         ignore_patterns = [
-            "__pycache__", ".pyc", ".pyo", ".git", ".nitro",
-            "build/", ".idea", ".vscode", ".DS_Store",
+            "__pycache__",
+            ".pyc",
+            ".pyo",
+            ".git",
+            ".nitro",
+            "build/",
+            ".idea",
+            ".vscode",
+            ".DS_Store",
         ]
 
         path_str = str(path)

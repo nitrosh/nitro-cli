@@ -25,25 +25,15 @@ from ..utils import (
 
 
 @click.command()
-@click.option(
-    "--port", "-p", default=3000, help="Port number for the development server"
-)
-@click.option(
-    "--host", "-h", default="localhost", help="Host address for the development server"
-)
+@click.option("--port", "-p", default=3000, help="Port number for the development server")
+@click.option("--host", "-h", default="localhost", help="Host address for the development server")
 @click.option("--no-reload", is_flag=True, help="Disable live reload")
-@click.option(
-    "--open", "-o", "open_browser", is_flag=True, help="Open browser automatically"
-)
+@click.option("--open", "-o", "open_browser", is_flag=True, help="Open browser automatically")
 @click.option("--verbose", "-v", is_flag=True, help="Enable verbose output")
 @click.option("--debug", is_flag=True, help="Enable debug mode with full tracebacks")
 @click.option("--log-file", type=click.Path(), help="Write logs to a file")
 def serve(port, host, no_reload, open_browser, verbose, debug, log_file):
-    """
-    Start a local development server.
-
-    Serves the built site and watches for changes.
-    """
+    """Start a local development server with live reload."""
     if debug:
         set_level(LogLevel.DEBUG)
     elif verbose:
@@ -65,22 +55,12 @@ async def serve_async(
     open_browser: bool = False,
     debug_mode: bool = False,
 ):
-    """Async serve implementation.
-
-    Args:
-        port: Port number
-        host: Host address
-        enable_reload: Enable live reload
-        open_browser: Open browser automatically
-        debug_mode: Enable debug mode
-    """
+    """Async serve implementation."""
     banner("Development Server")
 
     generator = Generator()
 
-    if not generator.build_dir.exists() or not list(
-        generator.build_dir.rglob("*.html")
-    ):
+    if not generator.build_dir.exists() or not list(generator.build_dir.rglob("*.html")):
         info("Build directory is empty. Generating site...")
         success_result = generator.generate(verbose=False)
         if not success_result:
@@ -99,25 +79,18 @@ async def serve_async(
 
     server_panel(host=host, port=port, live_reload=enable_reload)
 
-    # Open browser if requested
     if open_browser:
         import webbrowser
-
         url = f"http://{host}:{port}"
         webbrowser.open(url)
         info(f"Opened browser at {url}")
 
-    # Setup file watcher if live reload is enabled
     watcher = None
     if enable_reload:
-        # Get the current event loop for thread-safe scheduling
         loop = asyncio.get_running_loop()
-
-        # Lock to prevent concurrent regeneration (race condition)
         regeneration_lock = asyncio.Lock()
 
         async def on_file_change(path: Path) -> None:
-            """Handle file changes."""
             nonlocal generator
 
             async with regeneration_lock:
@@ -157,18 +130,14 @@ async def serve_async(
                     success("Done")
 
         def on_file_change_sync(path: Path) -> None:
-            """Sync wrapper for file change handler (called from watcher thread)."""
-            # Schedule the coroutine on the main event loop from another thread
             asyncio.run_coroutine_threadsafe(on_file_change(path), loop)
 
         watcher = Watcher(generator.project_root, on_file_change_sync)
         watcher.start()
 
-    # Create shutdown event
     shutdown_event = asyncio.Event()
 
     def signal_handler():
-        """Handle shutdown signals."""
         newline()
         info("Shutting down...")
         shutdown_event.set()
@@ -184,15 +153,10 @@ async def serve_async(
         info("Press Ctrl+C to stop the server")
         newline()
         await shutdown_event.wait()
-
     except asyncio.CancelledError:
         pass
     finally:
-        # Cleanup in proper order
         if watcher:
             watcher.stop()
-
-        # Give pending tasks a moment to complete
         await asyncio.sleep(0.1)
-
         await server.stop()
