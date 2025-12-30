@@ -11,18 +11,13 @@ from rich.box import ROUNDED
 
 from ..core.config import load_config
 from ..core.project import get_project_root
-from ..utils import logger, console
+from ..utils import console, banner
 
 
 @click.command()
 @click.option("--json", "as_json", is_flag=True, help="Output as JSON")
 def info(as_json):
-    """
-    Display project and environment information.
-
-    Shows details about the current Nitro project, installed dependencies,
-    and system environment.
-    """
+    """Display project and environment information."""
     project_root = get_project_root()
 
     if as_json:
@@ -35,15 +30,9 @@ def _output_rich(project_root):
     """Output info using Rich formatting."""
     from .. import __version__
 
-    logger.banner("Project Info")
+    banner("Project Info")
 
-    # Environment info
-    env_table = Table(
-        box=ROUNDED,
-        show_header=False,
-        padding=(0, 2),
-        expand=False,
-    )
+    env_table = Table(box=ROUNDED, show_header=False, padding=(0, 2), expand=False)
     env_table.add_column("Key", style="dim")
     env_table.add_column("Value", style="cyan")
 
@@ -57,17 +46,13 @@ def _output_rich(project_root):
 
     console.print(Panel(env_table, title="[bold]Environment[/]", border_style="blue"))
 
-    # Project info (if in a project)
     if project_root:
         config_path = project_root / "nitro.config.py"
         if config_path.exists():
             config = load_config(config_path)
 
             proj_table = Table(
-                box=ROUNDED,
-                show_header=False,
-                padding=(0, 2),
-                expand=False,
+                box=ROUNDED, show_header=False, padding=(0, 2), expand=False
             )
             proj_table.add_column("Key", style="dim")
             proj_table.add_column("Value", style="green")
@@ -85,7 +70,6 @@ def _output_rich(project_root):
                 Panel(proj_table, title="[bold]Project[/]", border_style="green")
             )
 
-            # Directory stats
             _show_directory_stats(project_root, config)
         else:
             console.print(
@@ -104,23 +88,16 @@ def _output_rich(project_root):
             )
         )
 
-    # Dependencies
     _show_dependencies()
 
 
 def _show_directory_stats(project_root: Path, config):
     """Show statistics about project directories."""
-    stats_table = Table(
-        box=ROUNDED,
-        show_header=True,
-        padding=(0, 2),
-        expand=False,
-    )
+    stats_table = Table(box=ROUNDED, show_header=True, padding=(0, 2), expand=False)
     stats_table.add_column("Directory", style="dim")
     stats_table.add_column("Files", justify="right", style="cyan")
     stats_table.add_column("Size", justify="right", style="green")
 
-    # Source directory
     source_dir = project_root / config.source_dir
     if source_dir.exists():
         pages_dir = source_dir / "pages"
@@ -140,7 +117,6 @@ def _show_directory_stats(project_root: Path, config):
                 "Components", str(comp_count), _format_dir_size(components_dir)
             )
 
-    # Build directory
     build_dir = project_root / config.build_dir
     if build_dir.exists():
         html_count = len(list(build_dir.rglob("*.html")))
@@ -148,7 +124,6 @@ def _show_directory_stats(project_root: Path, config):
             "Build (HTML)", str(html_count), _format_dir_size(build_dir)
         )
 
-    # Cache directory
     cache_dir = project_root / ".nitro"
     if cache_dir.exists():
         cache_files = len(list(cache_dir.rglob("*")))
@@ -162,12 +137,7 @@ def _show_directory_stats(project_root: Path, config):
 
 def _show_dependencies():
     """Show installed Nitro ecosystem dependencies."""
-    deps_table = Table(
-        box=ROUNDED,
-        show_header=True,
-        padding=(0, 2),
-        expand=False,
-    )
+    deps_table = Table(box=ROUNDED, show_header=True, padding=(0, 2), expand=False)
     deps_table.add_column("Package", style="dim")
     deps_table.add_column("Version", style="cyan")
     deps_table.add_column("Status", style="green")

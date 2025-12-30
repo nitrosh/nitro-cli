@@ -10,7 +10,16 @@ import click
 from ..core.config import load_config
 from ..core.project import get_project_root
 from ..core.server import LiveReloadServer
-from ..utils import logger, LogLevel, info, error, warning, configure
+from ..utils import (
+    LogLevel,
+    set_level,
+    info,
+    error,
+    warning,
+    banner,
+    server_panel,
+    newline,
+)
 
 
 @click.command()
@@ -25,27 +34,18 @@ from ..utils import logger, LogLevel, info, error, warning, configure
 @click.option("--debug", is_flag=True, help="Enable debug mode")
 @click.pass_context
 def preview(ctx, port, host, open_browser, verbose, debug):
-    """
-    Preview the production build locally.
-
-    Serves the built site without live reload or file watching.
-    Use this to test your production build before deploying.
-    """
-    # Configure logging
+    """Preview the production build locally."""
     if debug:
-        configure(level=LogLevel.DEBUG)
+        set_level(LogLevel.DEBUG)
     elif verbose:
-        configure(level=LogLevel.VERBOSE)
+        set_level(LogLevel.VERBOSE)
 
     try:
         asyncio.run(preview_async(port, host, open_browser, debug))
     except KeyboardInterrupt:
         pass
     except Exception as e:
-        if debug:
-            logger.exception(e, show_trace=True)
-        else:
-            error(f"Preview error: {e}")
+        error(f"Preview error: {e}")
         sys.exit(1)
 
 
@@ -53,10 +53,8 @@ async def preview_async(
     port: int, host: str, open_browser: bool, debug_mode: bool = False
 ):
     """Async preview implementation."""
-    # Show banner
-    logger.banner("Production Preview")
+    banner("Production Preview")
 
-    # Find project root and config
     project_root = get_project_root()
     if not project_root:
         project_root = Path.cwd()
@@ -68,39 +66,27 @@ async def preview_async(
     else:
         build_dir = project_root / "build"
 
-    # Check if build directory exists
     if not build_dir.exists():
         error(f"Build directory not found: {build_dir}")
         info("Run 'nitro build' first to create a production build")
         return
 
-    # Check if build directory has content
     html_files = list(build_dir.rglob("*.html"))
     if not html_files:
         error("Build directory is empty")
         info("Run 'nitro build' first to create a production build")
         return
 
-    # Initialize server (no live reload for preview)
     server = LiveReloadServer(
         build_dir=build_dir, host=host, port=port, enable_reload=False
     )
-
-    # Start server
     await server.start()
 
-    # Display server panel
-    logger.server_panel(
-        host=host,
-        port=port,
-        live_reload=False,
-        watching=None,
-    )
+    server_panel(host=host, port=port, live_reload=False)
 
     warning("This is a preview of your production build (no live reload)")
-    logger.newline()
+    newline()
 
-    # Open browser if requested
     if open_browser:
         import webbrowser
 
@@ -108,16 +94,13 @@ async def preview_async(
         webbrowser.open(url)
         info(f"Opened browser at {url}")
 
-    # Create shutdown event
     shutdown_event = asyncio.Event()
 
     def signal_handler():
-        """Handle shutdown signals."""
-        logger.newline()
+        newline()
         info("Shutting down preview server...")
         shutdown_event.set()
 
-    # Register signal handlers
     loop = asyncio.get_running_loop()
     for sig in (signal.SIGINT, signal.SIGTERM):
         try:
@@ -127,7 +110,7 @@ async def preview_async(
 
     try:
         info("Press Ctrl+C to stop the server")
-        logger.newline()
+        newline()
         await shutdown_event.wait()
     except asyncio.CancelledError:
         pass

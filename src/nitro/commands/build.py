@@ -1,6 +1,7 @@
 """Build command for production optimization."""
 
 import sys
+from datetime import datetime
 
 import click
 
@@ -9,7 +10,18 @@ from ..core.config import load_config
 from ..core.generator import Generator
 from ..core.images import ImageOptimizer, ImageConfig
 from ..core.islands import IslandProcessor, IslandConfig
-from ..utils import logger, LogLevel, info, success, verbose, configure
+from ..utils import (
+    LogLevel,
+    set_level,
+    info,
+    success,
+    error,
+    verbose,
+    banner,
+    error_panel,
+    newline,
+    build_summary,
+)
 
 
 @click.command()
@@ -44,7 +56,6 @@ from ..utils import logger, LogLevel, info, success, verbose, configure
 )
 @click.option("--quiet", "-q", is_flag=True, help="Only show errors and final summary")
 @click.option("--debug", is_flag=True, help="Enable debug mode with full tracebacks")
-@click.option("--log-file", type=click.Path(), help="Write logs to a file")
 def build(
     minify,
     optimize,
@@ -57,36 +68,24 @@ def build(
     verbose_flag,
     quiet,
     debug,
-    log_file,
 ):
-    """
-    Build the site for production.
-
-    Generates an optimized production build with minification,
-    image optimization, sitemap generation, and more.
-    """
-    # Configure logging
+    """Build the site for production."""
     if debug:
-        configure(level=LogLevel.DEBUG, log_file=log_file)
+        set_level(LogLevel.DEBUG)
     elif verbose_flag:
-        configure(level=LogLevel.VERBOSE, log_file=log_file)
+        set_level(LogLevel.VERBOSE)
     elif quiet:
-        configure(level=LogLevel.QUIET, log_file=log_file)
-    elif log_file:
-        configure(log_file=log_file)
+        set_level(LogLevel.QUIET)
 
     try:
-        # Show banner
-        logger.banner("Production Build")
-        logger.start_timer()
+        banner("Production Build")
+        start_time = datetime.now()
 
         generator = Generator()
 
-        # Override build directory if specified
         if output != "build":
             generator.build_dir = generator.project_root / output
 
-        # Clean build directory if requested
         if clean:
             info("Cleaning build directory...")
             generator.clean()
@@ -94,13 +93,11 @@ def build(
         info("Building site for production...")
         verbose(f"Output directory: {generator.build_dir}")
 
-        # Enable production settings
         config = load_config(generator.project_root / "nitro.config.py")
         if minify:
             config.renderer["minify_html"] = True
             generator.renderer.minify_html = True
 
-        # Trigger pre-build hook
         generator.plugin_loader.trigger(
             "nitro.pre_build",
             {
@@ -111,38 +108,33 @@ def build(
             },
         )
 
-        # Generate site
-        logger.section("Generating Pages")
+        info("Generating pages...")
         success_result = generator.generate(verbose=verbose_flag, force=force or clean)
 
         if not success_result:
-            logger.error_panel(
+            error_panel(
                 "Build Failed",
                 "Failed to generate site during build",
                 hint="Check your page files for syntax errors",
             )
             sys.exit(1)
 
-        # Initialize bundler
         bundler = Bundler(generator.build_dir)
 
-        # Optimize CSS
         if minify:
-            logger.section("Optimizing CSS")
+            info("Optimizing CSS...")
             css_count = bundler.optimize_css(minify=True)
             if css_count:
                 verbose(f"Minified {css_count} CSS file(s)")
 
-        # Optimize images
         if optimize:
-            logger.section("Optimizing Images")
+            info("Optimizing images...")
             img_count = bundler.optimize_images(quality=85)
             if img_count:
                 verbose(f"Optimized {img_count} image(s)")
 
-        # Generate responsive images with WebP/AVIF
         if responsive:
-            logger.section("Generating Responsive Images")
+            info("Generating responsive images...")
             img_optimizer = ImageOptimizer(
                 ImageConfig(
                     formats=["avif", "webp", "original"],
@@ -151,7 +143,6 @@ def build(
                 )
             )
 
-            # Process all HTML files to replace img tags with picture elements
             html_files = list(generator.build_dir.rglob("*.html"))
             resp_count = 0
             for html_file in html_files:
@@ -169,16 +160,14 @@ def build(
             if resp_count:
                 verbose(f"Processed {resp_count} HTML file(s) with responsive images")
 
-        # Fingerprint assets for cache busting
         if fingerprint:
-            logger.section("Fingerprinting Assets")
+            info("Fingerprinting assets...")
             asset_mapping = bundler.fingerprint_assets()
             if asset_mapping:
                 verbose(f"Fingerprinted {len(asset_mapping)} asset(s)")
 
-        # Process islands and inject hydration scripts
         if islands:
-            logger.section("Processing Islands")
+            info("Processing islands...")
             island_processor = IslandProcessor(IslandConfig(debug=debug))
             html_files = list(generator.build_dir.rglob("*.html"))
             islands_count = 0
@@ -192,8 +181,7 @@ def build(
             if islands_count:
                 verbose(f"Processed {islands_count} page(s) with islands")
 
-        # Generate sitemap
-        logger.section("Generating Metadata")
+        info("Generating metadata...")
         html_files = list(generator.build_dir.rglob("*.html"))
         sitemap_path = generator.build_dir / "sitemap.xml"
         bundler.generate_sitemap(
@@ -201,20 +189,16 @@ def build(
         )
         verbose(f"Created sitemap.xml with {len(html_files)} URLs")
 
-        # Generate robots.txt
         robots_path = generator.build_dir / "robots.txt"
         bundler.generate_robots_txt(config.base_url, robots_path)
         verbose("Created robots.txt")
 
-        # Create asset manifest
         manifest_path = generator.build_dir / "manifest.json"
         bundler.create_asset_manifest(manifest_path)
         verbose("Created manifest.json")
 
-        # Calculate build statistics
         stats = bundler.calculate_build_size()
 
-        # Trigger post-build hook
         generator.plugin_loader.trigger(
             "nitro.post_build",
             {
@@ -226,37 +210,15 @@ def build(
             },
         )
 
-        # Build optimizations list
-        optimizations = []
-        if minify:
-            optimizations.append("HTML & CSS Minification")
-        if optimize:
-            optimizations.append("Image Optimization")
-        if responsive:
-            optimizations.append("Responsive Images (WebP/AVIF)")
-        if fingerprint:
-            optimizations.append("Asset Fingerprinting")
-        if islands:
-            optimizations.append("Islands Hydration")
-        optimizations.extend(["Sitemap Generation", "Asset Manifest"])
+        elapsed = (datetime.now() - start_time).total_seconds()
+        elapsed_str = f"{elapsed:.2f}s" if elapsed >= 1 else f"{elapsed * 1000:.0f}ms"
 
-        # Display build summary
-        logger.newline()
-        logger.build_summary(
-            stats=stats,
-            build_dir=generator.build_dir,
-            elapsed=logger.get_elapsed(),
-            optimizations=optimizations,
-        )
+        newline()
+        build_summary(stats=stats, elapsed=elapsed_str)
 
-        logger.newline()
+        newline()
         success(f"Production build complete! Output: {generator.build_dir}")
 
     except Exception as e:
-        if debug:
-            logger.exception(e, show_trace=True)
-        else:
-            logger.error_panel(
-                "Build Error", str(e), hint="Use --debug for full traceback"
-            )
+        error_panel("Build Error", str(e), hint="Use --debug for full traceback")
         sys.exit(1)

@@ -1,12 +1,12 @@
 """Development server for Nitro sites."""
 
 import asyncio
+import mimetypes
 from pathlib import Path
 from typing import Set, Optional
-import mimetypes
 
-from aiohttp import web, WSMsgType
 import aiofiles
+from aiohttp import web, WSMsgType
 
 from ..utils import success, info, error
 
@@ -21,7 +21,8 @@ class LiveReloadServer:
         port: int = 3000,
         enable_reload: bool = True,
     ):
-        """Initialize server.
+        """
+        Initialize server.
 
         Args:
             build_dir: Directory containing built files

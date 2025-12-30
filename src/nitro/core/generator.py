@@ -12,7 +12,7 @@ from ..core.project import get_project_root
 from ..core.cache import BuildCache
 from ..core.markdown import MarkdownProcessor, MarkdownDocument
 from ..plugins import PluginLoader
-from ..utils import success, error, info, warning, logger
+from ..utils import success, error, info, warning, console
 from rich.progress import (
     Progress,
     SpinnerColumn,
@@ -210,7 +210,7 @@ class Generator:
                     progress.update(task, description=f"[cyan]{relative_path}[/]")
 
                     if verbose:
-                        logger.print(f"  Processing: {relative_path}")
+                        console.print(f"  Processing: {relative_path}")
 
                     html = self.renderer.render_page(page_path, self.project_root)
 
@@ -249,7 +249,7 @@ class Generator:
                             self.cache.update_page_hash(page_path)
 
                         if verbose:
-                            logger.print(
+                            console.print(
                                 f"    → {output_path.relative_to(self.project_root)}"
                             )
                     else:
@@ -271,7 +271,7 @@ class Generator:
         # Generate dynamic pages
         dynamic_count = 0
         if dynamic_pages:
-            logger.section("Generating Dynamic Routes")
+            console.print("\n[dim]─── Generating Dynamic Routes [/dim]")
             for dynamic_page in dynamic_pages:
                 relative_path = dynamic_page.relative_to(self.project_root)
                 info(f"Processing dynamic route: {relative_path}")
@@ -295,7 +295,7 @@ class Generator:
                         dynamic_count += 1
 
                         if verbose:
-                            logger.print(
+                            console.print(
                                 f"  → {output_path.relative_to(self.project_root)}"
                             )
 
@@ -312,7 +312,7 @@ class Generator:
         # Generate pages from Markdown content (if content directory exists)
         content_dir = self.source_dir / "content"
         if content_dir.exists():
-            logger.section("Processing Markdown Content")
+            console.print("\n[dim]─── Processing Markdown Content [/dim]")
             self.generate_markdown_pages(content_dir, verbose=verbose)
 
         success("Site generation complete!")
@@ -380,7 +380,7 @@ class Generator:
                 output_path.write_text(html)
 
                 if verbose:
-                    logger.print(f"  → {output_path.relative_to(self.project_root)}")
+                    console.print(f"  → {output_path.relative_to(self.project_root)}")
 
                 return True
 
@@ -435,7 +435,7 @@ class Generator:
                 files_copied += 1
 
                 if verbose:
-                    logger.print(f"  Copied: {relative}")
+                    console.print(f"  Copied: {relative}")
 
         if files_copied > 0:
             success(f"Copied {files_copied} {name} file(s)")
@@ -539,7 +539,7 @@ class Generator:
                 count += 1
 
                 if verbose:
-                    logger.print(f"  → {output_path.relative_to(self.project_root)}")
+                    console.print(f"  → {output_path.relative_to(self.project_root)}")
 
             except Exception as e:
                 error(f"Error generating {doc.path}: {e}")

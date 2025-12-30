@@ -7,7 +7,7 @@ import click
 
 from ..core.config import load_config
 from ..core.project import get_project_root
-from ..utils import logger, info, success, warning, error
+from ..utils import info, success, warning, error, banner, newline
 
 
 @click.command()
@@ -21,18 +21,11 @@ from ..utils import logger, info, success, warning, error
 )
 @click.option("--verbose", "-v", is_flag=True, help="Enable verbose output")
 def clean(clean_build, clean_cache, clean_all, dry_run, verbose):
-    """
-    Clean build artifacts and cache.
-
-    By default, cleans both build directory and .nitro cache.
-    Use --build or --cache to clean specific directories.
-    """
-    # Find project root
+    """Clean build artifacts and cache."""
     project_root = get_project_root()
     if not project_root:
         project_root = Path.cwd()
 
-    # Load config to get build directory name
     config_path = project_root / "nitro.config.py"
     if config_path.exists():
         config = load_config(config_path)
@@ -42,7 +35,6 @@ def clean(clean_build, clean_cache, clean_all, dry_run, verbose):
 
     cache_dir = project_root / ".nitro"
 
-    # Default: clean all if no specific flag
     if not clean_build and not clean_cache and not clean_all:
         clean_all = True
 
@@ -54,18 +46,17 @@ def clean(clean_build, clean_cache, clean_all, dry_run, verbose):
         directories_to_clean.append(("cache", cache_dir))
 
     if dry_run:
-        logger.banner("Clean (Dry Run)")
+        banner("Clean (Dry Run)")
         info("The following would be deleted:")
-        logger.newline()
+        newline()
     else:
-        logger.banner("Clean")
+        banner("Clean")
 
     total_size = 0
     cleaned_count = 0
 
     for name, dir_path in directories_to_clean:
         if dir_path.exists():
-            # Calculate size
             size = _get_dir_size(dir_path)
             total_size += size
             size_str = _format_size(size)
@@ -86,7 +77,7 @@ def clean(clean_build, clean_cache, clean_all, dry_run, verbose):
             if verbose or dry_run:
                 warning(f"{name.capitalize()} directory not found: {dir_path}")
 
-    logger.newline()
+    newline()
 
     if dry_run:
         info(f"Total: {_format_size(total_size)} would be freed")

@@ -9,7 +9,7 @@ import click
 
 from ..core.config import load_config
 from ..core.project import get_project_root
-from ..utils import logger, info, success, error
+from ..utils import info, success, error, banner, console
 
 
 @click.command()
@@ -26,20 +26,13 @@ from ..utils import logger, info, success, error
 @click.option("--prod", is_flag=True, help="Deploy to production (not preview)")
 @click.option("--verbose", "-v", is_flag=True, help="Enable verbose output")
 def deploy(platform, build, prod, verbose):
-    """
-    Deploy the site to a hosting platform.
+    """Deploy the site to a hosting platform."""
+    banner("Deploy")
 
-    Supports Netlify, Vercel, and Cloudflare Pages.
-    Auto-detects the platform if not specified.
-    """
-    logger.banner("Deploy")
-
-    # Find project root
     project_root = get_project_root()
     if not project_root:
         project_root = Path.cwd()
 
-    # Load config
     config_path = project_root / "nitro.config.py"
     if config_path.exists():
         config = load_config(config_path)
@@ -47,7 +40,6 @@ def deploy(platform, build, prod, verbose):
     else:
         build_dir = project_root / "build"
 
-    # Build first if requested
     if build:
         info("Building site for production...")
         from .build import build as build_cmd
@@ -62,13 +54,11 @@ def deploy(platform, build, prod, verbose):
                 error("Build failed, aborting deployment")
                 sys.exit(1)
 
-    # Check build directory exists
     if not build_dir.exists():
         error(f"Build directory not found: {build_dir}")
         info("Run 'nitro build' first")
         sys.exit(1)
 
-    # Auto-detect platform
     if platform == "auto":
         platform = _detect_platform(project_root)
         if platform:
@@ -78,7 +68,6 @@ def deploy(platform, build, prod, verbose):
             info("Specify a platform with --platform [netlify|vercel|cloudflare]")
             sys.exit(1)
 
-    # Deploy to selected platform
     if platform == "netlify":
         _deploy_netlify(build_dir, prod, verbose)
     elif platform == "vercel":
@@ -88,15 +77,7 @@ def deploy(platform, build, prod, verbose):
 
 
 def _detect_platform(project_root: Path) -> str:
-    """Auto-detect the deployment platform.
-
-    Args:
-        project_root: Project root directory
-
-    Returns:
-        Platform name or None
-    """
-    # Check for platform-specific files
+    """Auto-detect the deployment platform."""
     if (project_root / "netlify.toml").exists():
         return "netlify"
     if (project_root / "vercel.json").exists():
@@ -104,7 +85,6 @@ def _detect_platform(project_root: Path) -> str:
     if (project_root / "wrangler.toml").exists():
         return "cloudflare"
 
-    # Check for installed CLIs
     if shutil.which("netlify"):
         return "netlify"
     if shutil.which("vercel"):
@@ -116,21 +96,14 @@ def _detect_platform(project_root: Path) -> str:
 
 
 def _deploy_netlify(build_dir: Path, prod: bool, verbose: bool):
-    """Deploy to Netlify.
-
-    Args:
-        build_dir: Build directory
-        prod: Production deployment
-        verbose: Verbose output
-    """
-    # Check for Netlify CLI
+    """Deploy to Netlify."""
     if not shutil.which("netlify"):
         error("Netlify CLI not found")
         info("Install with: npm install -g netlify-cli")
         info("Then run: netlify login")
         sys.exit(1)
 
-    logger.section("Deploying to Netlify")
+    info("Deploying to Netlify...")
 
     cmd = ["netlify", "deploy", "--dir", str(build_dir)]
     if prod:
@@ -149,14 +122,13 @@ def _deploy_netlify(build_dir: Path, prod: bool, verbose: bool):
         if result.returncode == 0:
             success("Deployment successful!")
             if not verbose and result.stdout:
-                # Extract URL from output
                 for line in result.stdout.split("\n"):
                     if "Website URL:" in line or "Website Draft URL:" in line:
-                        logger.print(line.strip())
+                        console.print(line.strip())
         else:
             error("Deployment failed")
             if result.stderr:
-                logger.print(result.stderr)
+                console.print(result.stderr)
             sys.exit(1)
 
     except Exception as e:
@@ -165,23 +137,15 @@ def _deploy_netlify(build_dir: Path, prod: bool, verbose: bool):
 
 
 def _deploy_vercel(build_dir: Path, prod: bool, verbose: bool):
-    """Deploy to Vercel.
-
-    Args:
-        build_dir: Build directory
-        prod: Production deployment
-        verbose: Verbose output
-    """
-    # Check for Vercel CLI
+    """Deploy to Vercel."""
     if not shutil.which("vercel"):
         error("Vercel CLI not found")
         info("Install with: npm install -g vercel")
         info("Then run: vercel login")
         sys.exit(1)
 
-    logger.section("Deploying to Vercel")
+    info("Deploying to Vercel...")
 
-    # Vercel deploys the current directory, so we need to deploy from build_dir
     cmd = ["vercel", str(build_dir)]
     if prod:
         cmd.append("--prod")
@@ -190,7 +154,6 @@ def _deploy_vercel(build_dir: Path, prod: bool, verbose: bool):
         info("Creating preview deployment...")
         info("Use --prod for production deployment")
 
-    # Add yes flag to skip prompts
     cmd.extend(["--yes"])
 
     if verbose:
@@ -202,14 +165,13 @@ def _deploy_vercel(build_dir: Path, prod: bool, verbose: bool):
         if result.returncode == 0:
             success("Deployment successful!")
             if not verbose and result.stdout:
-                # The URL is usually the last non-empty line
                 lines = [ln.strip() for ln in result.stdout.split("\n") if ln.strip()]
                 if lines:
                     info(f"URL: {lines[-1]}")
         else:
             error("Deployment failed")
             if result.stderr:
-                logger.print(result.stderr)
+                console.print(result.stderr)
             sys.exit(1)
 
     except Exception as e:
@@ -218,23 +180,15 @@ def _deploy_vercel(build_dir: Path, prod: bool, verbose: bool):
 
 
 def _deploy_cloudflare(build_dir: Path, prod: bool, verbose: bool):
-    """Deploy to Cloudflare Pages.
-
-    Args:
-        build_dir: Build directory
-        prod: Production deployment
-        verbose: Verbose output
-    """
-    # Check for Wrangler CLI
+    """Deploy to Cloudflare Pages."""
     if not shutil.which("wrangler"):
         error("Wrangler CLI not found")
         info("Install with: npm install -g wrangler")
         info("Then run: wrangler login")
         sys.exit(1)
 
-    logger.section("Deploying to Cloudflare Pages")
+    info("Deploying to Cloudflare Pages...")
 
-    # Get project name from config or directory
     project_root = get_project_root() or Path.cwd()
     project_name = project_root.name.lower().replace("_", "-").replace(" ", "-")
 
@@ -265,12 +219,11 @@ def _deploy_cloudflare(build_dir: Path, prod: bool, verbose: bool):
             if not verbose and result.stdout:
                 for line in result.stdout.split("\n"):
                     if ".pages.dev" in line:
-                        logger.print(line.strip())
+                        console.print(line.strip())
         else:
             error("Deployment failed")
             if result.stderr:
-                logger.print(result.stderr)
-            # Cloudflare might prompt to create the project
+                console.print(result.stderr)
             if "does not exist" in (result.stderr or ""):
                 info("You may need to create the project first:")
                 info(f"  wrangler pages project create {project_name}")

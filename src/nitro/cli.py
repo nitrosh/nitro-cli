@@ -2,9 +2,8 @@
 
 import click
 from rich.console import Console
-from rich.panel import Panel
 from rich.text import Text
-from rich.box import ROUNDED
+from rich.table import Table
 from . import __version__
 from .commands import new, serve, dev, build, preview, clean, info, deploy, test, docs
 from .core.project import get_project_root
@@ -12,7 +11,7 @@ from .core.project import get_project_root
 console = Console()
 
 
-def detect_project():
+def detect_project_context():
     """
     Detect if we're inside a Nitro project.
 
@@ -27,55 +26,44 @@ def detect_project():
 
 def show_welcome():
     """Display the welcome banner with commands and project info."""
-    project_root, project_name = detect_project()
+    project_root, project_name = detect_project_context()
 
+    # Header
     header = Text()
-    header.append("\n")
-    header.append("⚡ ", style="bold magenta")
+    header.append("\n⚡ ", style="bold magenta")
     header.append("Nitro", style="bold cyan")
-    header.append(" ", style="bold magenta")
-    header.append(f"v{__version__}", style="dim")
-    header.append(" - ")
-    header.append("https://nitro.sh", style="dim")
-    header.append("\n")
-    header.append("   Static sites without the JavaScript fatigue.\n", style="dim")
+    header.append(f" v{__version__}", style="dim")
+    header.append(" - https://nitro.sh\n", style="dim")
 
-    # Project info (if inside a project)
     if project_root:
-        header.append("\n")
-        header.append("  Project: ", style="dim")
+        header.append("\n  Project: ", style="dim")
         header.append(project_name, style="bold green")
-        header.append("\n")
-        header.append("  Path:    ", style="dim")
+        header.append("\n  Path:    ", style="dim")
         header.append(str(project_root), style="blue")
         header.append("\n")
 
-    # Commands section
-    commands = Text()
-    commands.append("\n")
-    commands.append("  Commands:\n", style="bold")
-    commands.append("    nitro new ", style="cyan")
-    commands.append("<name>", style="dim cyan")
-    commands.append("   Create a new project\n", style="dim")
-    commands.append("    nitro dev         ", style="cyan")
-    commands.append("   Start dev server with hot reload\n", style="dim")
-    commands.append("    nitro build       ", style="cyan")
-    commands.append("   Build for production\n", style="dim")
-    commands.append("    nitro preview     ", style="cyan")
-    commands.append("   Preview production build\n", style="dim")
-    commands.append("    nitro clean       ", style="cyan")
-    commands.append("   Clean build artifacts\n", style="dim")
-    commands.append("    nitro info        ", style="cyan")
-    commands.append("   Show project info\n", style="dim")
-    commands.append("\n")
-    commands.append("  Run ", style="dim")
-    commands.append("nitro <command> --help", style="cyan")
-    commands.append(" for more options\n", style="dim")
+    console.print(header)
 
-    content = Text()
-    content.append_text(header)
-    content.append_text(commands)
-    console.print(content)
+    # Commands table
+    table = Table(show_header=False, box=None, padding=(0, 2, 0, 0))
+    table.add_column("command", style="cyan")
+    table.add_column("description", style="dim")
+
+    table.add_row(" nitro new [dim]<name>[/dim]", "Create a new project")
+    table.add_row(" nitro dev", "Start dev server with hot reload")
+    table.add_row(" nitro build", "Build for production")
+    table.add_row(" nitro preview", "Preview production build")
+    table.add_row(" nitro clean", "Clean build artifacts")
+    table.add_row(" nitro info", "Show project info")
+
+    console.print(" [bold]Commands:[/bold]\n")
+    console.print(table)
+
+    footer = Text()
+    footer.append("\nRun ", style="dim")
+    footer.append(" nitro <command> --help", style="cyan")
+    footer.append(" for more options\n", style="dim")
+    console.print(footer)
 
 
 @click.group(invoke_without_command=True)

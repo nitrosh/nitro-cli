@@ -56,5 +56,4 @@ class NitroPlugin(PluginBase):
         pass
 
 
-# Re-export hook decorator for convenience
 __all__ = ["NitroPlugin", "hook"]

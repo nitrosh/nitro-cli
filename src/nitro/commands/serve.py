@@ -10,7 +10,18 @@ import click
 from ..core.generator import Generator
 from ..core.server import LiveReloadServer
 from ..core.watcher import Watcher
-from ..utils import logger, LogLevel, info, success, error, configure
+from ..utils import (
+    LogLevel,
+    set_level,
+    info,
+    success,
+    error,
+    banner,
+    server_panel,
+    error_panel,
+    hmr_update,
+    newline,
+)
 
 
 @click.command()
@@ -33,24 +44,17 @@ def serve(port, host, no_reload, open_browser, verbose, debug, log_file):
 
     Serves the built site and watches for changes.
     """
-    # Configure logging
     if debug:
-        configure(level=LogLevel.DEBUG, log_file=log_file)
+        set_level(LogLevel.DEBUG)
     elif verbose:
-        configure(level=LogLevel.VERBOSE, log_file=log_file)
-    elif log_file:
-        configure(log_file=log_file)
+        set_level(LogLevel.VERBOSE)
 
     try:
         asyncio.run(serve_async(port, host, not no_reload, open_browser, debug))
     except KeyboardInterrupt:
-        # This shouldn't normally be reached since we handle signals in serve_async
         pass
     except Exception as e:
-        if debug:
-            logger.exception(e, show_trace=True)
-        else:
-            error(f"Server error: {e}")
+        error(f"Server error: {e}")
         sys.exit(1)
 
 
@@ -70,43 +74,30 @@ async def serve_async(
         open_browser: Open browser automatically
         debug_mode: Enable debug mode
     """
-    # Show banner
-    logger.banner("Development Server")
+    banner("Development Server")
 
-    # Initialize generator
     generator = Generator()
 
-    # Check if build directory exists and contains any HTML file (including nested)
     if not generator.build_dir.exists() or not list(
         generator.build_dir.rglob("*.html")
     ):
-        info("Build directory is empty or doesn't exist. Generating site...")
-        logger.start_timer()
+        info("Build directory is empty. Generating site...")
         success_result = generator.generate(verbose=False)
         if not success_result:
-            logger.error_panel(
+            error_panel(
                 "Generation Failed",
                 "Failed to generate site before starting server",
                 hint="Check your page files for syntax errors",
             )
             return
-        success(f"Site generated in {logger.get_elapsed()}")
+        success("Site generated")
 
-    # Initialize server
     server = LiveReloadServer(
         build_dir=generator.build_dir, host=host, port=port, enable_reload=enable_reload
     )
-
-    # Start server
     await server.start()
 
-    # Display server panel
-    logger.server_panel(
-        host=host,
-        port=port,
-        live_reload=enable_reload,
-        watching="src/" if enable_reload else None,
-    )
+    server_panel(host=host, port=port, live_reload=enable_reload)
 
     # Open browser if requested
     if open_browser:
@@ -129,52 +120,41 @@ async def serve_async(
             """Handle file changes."""
             nonlocal generator
 
-            # Prevent concurrent regeneration which could corrupt state
             async with regeneration_lock:
-                logger.start_timer()
-
-                # Log the file change with HMR style
                 try:
                     relative_path = str(path.relative_to(generator.project_root))
                 except ValueError:
                     relative_path = path.name
-                logger.hmr_change(relative_path)
+                hmr_update(relative_path)
 
-                # Determine what changed
                 should_notify = False
 
                 if "pages" in str(path):
-                    # Regenerate specific page
                     if path.suffix == ".py" and path.name != "__init__.py":
-                        logger.hmr_rebuilding(1, "page")
+                        hmr_update("page", "rebuilding...")
                         if generator.regenerate_page(path, verbose=False):
                             should_notify = True
                 elif "components" in str(path):
-                    # Component changed - regenerate all pages
-                    logger.hmr_rebuilding(target="site")
+                    hmr_update("site", "rebuilding...")
                     if generator.generate(verbose=False):
                         should_notify = True
                 elif "styles" in str(path) or "public" in str(path):
-                    # Recopy assets
-                    logger.hmr_rebuilding(target="assets")
+                    hmr_update("assets", "rebuilding...")
                     generator._copy_assets(verbose=False)
                     should_notify = True
                 elif path.name == "nitro.config.py":
-                    # Config changed - regenerate entire site
-                    logger.hmr_rebuilding(target="site")
-                    generator = Generator()  # Reload config
+                    hmr_update("config", "rebuilding...")
+                    generator = Generator()
                     if generator.generate(verbose=False):
                         should_notify = True
                 else:
-                    # Other changes - regenerate entire site
-                    logger.hmr_rebuilding(target="site")
+                    hmr_update("site", "rebuilding...")
                     if generator.generate(verbose=False):
                         should_notify = True
 
-                # Notify clients to reload
                 if should_notify:
                     await server.notify_reload()
-                    logger.hmr_done()
+                    success("Done")
 
         def on_file_change_sync(path: Path) -> None:
             """Sync wrapper for file change handler (called from watcher thread)."""
@@ -189,23 +169,20 @@ async def serve_async(
 
     def signal_handler():
         """Handle shutdown signals."""
-        logger.newline()
+        newline()
         info("Shutting down...")
         shutdown_event.set()
 
-    # Register signal handlers for graceful shutdown
     loop = asyncio.get_running_loop()
     for sig in (signal.SIGINT, signal.SIGTERM):
         try:
             loop.add_signal_handler(sig, signal_handler)
         except NotImplementedError:
-            # Windows doesn't support add_signal_handler
             pass
 
     try:
-        # Run server forever
         info("Press Ctrl+C to stop the server")
-        logger.newline()
+        newline()
         await shutdown_event.wait()
 
     except asyncio.CancelledError:

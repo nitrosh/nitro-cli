@@ -10,8 +10,8 @@ from datetime import datetime
 class MarkdownDocument:
     """Represents a parsed Markdown document with frontmatter."""
 
-    content: str  # HTML content
-    raw_content: str  # Original markdown
+    content: str
+    raw_content: str
     frontmatter: Dict[str, Any] = field(default_factory=dict)
     path: Optional[Path] = None
 

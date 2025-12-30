@@ -8,7 +8,19 @@ from pathlib import Path
 import click
 from rich.progress import Progress, SpinnerColumn, TextColumn
 
-from ..utils import logger, LogLevel, info, warning, verbose, configure
+from ..utils import (
+    LogLevel,
+    set_level,
+    console,
+    info,
+    warning,
+    error,
+    verbose,
+    banner,
+    error_panel,
+    newline,
+    scaffold_complete,
+)
 
 
 @click.command()
@@ -19,31 +31,20 @@ from ..utils import logger, LogLevel, info, warning, verbose, configure
     "--verbose", "-v", "verbose_flag", is_flag=True, help="Enable verbose output"
 )
 @click.option("--debug", is_flag=True, help="Enable debug mode with full tracebacks")
-@click.option("--log-file", type=click.Path(), help="Write logs to a file")
-def new(project_name, no_git, no_install, verbose_flag, debug, log_file):
-    """
-    Create a new Nitro project.
-
-    PROJECT_NAME: Name of the project directory to create
-    """
-    # Configure logging
+def new(project_name, no_git, no_install, verbose_flag, debug):
+    """Create a new Nitro project."""
     if debug:
-        configure(level=LogLevel.DEBUG, log_file=log_file)
+        set_level(LogLevel.DEBUG)
     elif verbose_flag:
-        configure(level=LogLevel.VERBOSE, log_file=log_file)
-    elif log_file:
-        configure(log_file=log_file)
+        set_level(LogLevel.VERBOSE)
 
     try:
-        # Show banner
-        logger.banner("New Project")
-        logger.start_timer()
+        banner("New Project")
 
         project_path = Path.cwd() / project_name
 
-        # Check if directory already exists
         if project_path.exists():
-            logger.error_panel(
+            error_panel(
                 "Directory Exists",
                 f"Directory '{project_name}' already exists!",
                 hint="Choose a different project name or remove the existing directory",
@@ -56,36 +57,30 @@ def new(project_name, no_git, no_install, verbose_flag, debug, log_file):
         with Progress(
             SpinnerColumn(),
             TextColumn("[progress.description]{task.description}"),
-            console=logger.console,
+            console=console,
         ) as progress:
-            # Create project directory
             task = progress.add_task("Creating project structure...", total=None)
             project_path.mkdir(parents=True)
             verbose(f"Created directory: {project_path}")
 
-            # Copy template
             progress.update(task, description="Copying template files...")
             template_path = Path(__file__).parent.parent / "templates" / "default"
             file_count = copy_template(template_path, project_path, verbose_flag)
             verbose(f"Copied {file_count} template files")
 
-            # Create additional directories
             progress.update(task, description="Creating directories...")
             (project_path / "build").mkdir(exist_ok=True)
             (project_path / ".nitro" / "cache").mkdir(parents=True, exist_ok=True)
             verbose("Created build/ and .nitro/cache/ directories")
 
-            # Create requirements.txt
             progress.update(task, description="Creating requirements.txt...")
             create_requirements_txt(project_path)
             verbose("Created requirements.txt")
 
-            # Create .gitignore
             progress.update(task, description="Creating .gitignore...")
             create_gitignore(project_path)
             verbose("Created .gitignore")
 
-            # Initialize git
             if not no_git:
                 progress.update(task, description="Initializing git repository...")
                 try:
@@ -104,7 +99,6 @@ def new(project_name, no_git, no_install, verbose_flag, debug, log_file):
                 except FileNotFoundError:
                     warning("Git initialization failed (is git installed?)")
 
-            # Install dependencies
             if not no_install:
                 progress.update(task, description="Installing dependencies...")
                 try:
@@ -124,9 +118,8 @@ def new(project_name, no_git, no_install, verbose_flag, debug, log_file):
                     )
                     verbose("Dependencies installed successfully")
                     if verbose_flag and result.stdout:
-                        # Show only summary, not entire output
                         lines = result.stdout.strip().split("\n")
-                        for line in lines[-3:]:  # Last 3 lines
+                        for line in lines[-3:]:
                             if line.strip():
                                 verbose(f"  {line.strip()}")
                 except subprocess.CalledProcessError as e:
@@ -140,36 +133,16 @@ def new(project_name, no_git, no_install, verbose_flag, debug, log_file):
 
             progress.remove_task(task)
 
-        # Show completion panel
-        logger.newline()
-        logger.scaffold_complete(project_name)
+        newline()
+        scaffold_complete(project_name)
 
     except Exception as e:
-        if debug:
-            logger.exception(e, show_trace=True)
-        else:
-            logger.error_panel(
-                "Scaffold Error", str(e), hint="Use --debug for full traceback"
-            )
+        error_panel("Scaffold Error", str(e), hint="Use --debug for full traceback")
         sys.exit(1)
 
 
 def copy_template(src: Path, dst: Path, verbose_mode: bool = False) -> int:
-    """
-    Copy template directory to destination.
-
-    Args:
-        src: Source template directory
-        dst: Destination project directory
-        verbose_mode: Whether to log each file
-
-    Returns:
-        Number of files copied
-
-    Raises:
-        FileNotFoundError: If template not found
-        OSError: If file copy fails
-    """
+    """Copy template directory to destination."""
     if not src.exists():
         raise FileNotFoundError(f"Template not found: {src}")
 
@@ -193,12 +166,7 @@ def copy_template(src: Path, dst: Path, verbose_mode: bool = False) -> int:
 
 
 def create_requirements_txt(project_path: Path) -> None:
-    """
-    Create requirements.txt file.
-
-    Args:
-        project_path: Path to project directory
-    """
+    """Create requirements.txt file."""
     requirements = """# Core dependencies
 nitro-cli>=0.1.0
 nitro-ui>=0.1.0
@@ -212,11 +180,7 @@ nitro-datastore>=0.1.0
 
 
 def create_gitignore(project_path: Path) -> None:
-    """Create .gitignore file.
-
-    Args:
-        project_path: Path to project directory
-    """
+    """Create .gitignore file."""
     gitignore = """# Nitro
 build/
 .nitro/

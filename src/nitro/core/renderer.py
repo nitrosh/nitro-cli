@@ -6,7 +6,7 @@ import importlib.util
 import sys
 
 from ..core.project import Page
-from ..utils import error, warning, logger
+from ..utils import error, warning, error_panel
 
 
 class Renderer:
@@ -246,77 +246,69 @@ class Renderer:
                     del sys.modules[spec.name]
 
         except SyntaxError as e:
-            # Handle syntax errors with precise location
-            logger.code_error(
-                title="Syntax Error",
-                message=str(e.msg) if hasattr(e, "msg") else str(e),
+            error_panel(
+                "Syntax Error",
+                str(e.msg) if hasattr(e, "msg") else str(e),
                 file_path=str(e.filename) if e.filename else str(page_path),
                 line=e.lineno or 1,
-                column=e.offset,
-                suggestion="Check for missing parentheses, quotes, or colons",
+                hint="Check for missing parentheses, quotes, or colons",
             )
             return None
 
         except NameError as e:
-            # Handle name errors with suggestions
             import traceback
 
             tb = traceback.extract_tb(e.__traceback__)
             if tb:
                 last_frame = tb[-1]
-                # Try to suggest similar names
                 suggestion = self._suggest_name_fix(str(e))
-                logger.code_error(
-                    title="Name Error",
-                    message=str(e),
+                error_panel(
+                    "Name Error",
+                    str(e),
                     file_path=last_frame.filename,
                     line=last_frame.lineno,
-                    suggestion=suggestion,
+                    hint=suggestion,
                 )
             else:
                 error(f"NameError in {page_path}: {e}")
             return None
 
         except ImportError as e:
-            # Handle import errors
             import traceback
 
             tb = traceback.extract_tb(e.__traceback__)
             frame = tb[-1] if tb else None
-            logger.code_error(
-                title="Import Error",
-                message=str(e),
+            error_panel(
+                "Import Error",
+                str(e),
                 file_path=frame.filename if frame else str(page_path),
                 line=frame.lineno if frame else 1,
-                suggestion="Check that the module is installed and the import path is correct",
+                hint="Check that the module is installed and the import path is correct",
             )
             return None
 
         except AttributeError as e:
-            # Handle attribute errors
             import traceback
 
             tb = traceback.extract_tb(e.__traceback__)
             if tb:
                 last_frame = tb[-1]
-                logger.code_error(
-                    title="Attribute Error",
-                    message=str(e),
+                error_panel(
+                    "Attribute Error",
+                    str(e),
                     file_path=last_frame.filename,
                     line=last_frame.lineno,
-                    suggestion="Check that the object has the attribute you're trying to access",
+                    hint="Check that the object has the attribute you're trying to access",
                 )
             else:
                 error(f"AttributeError in {page_path}: {e}")
             return None
 
         except Exception as e:
-            # Generic error handling with traceback extraction
             import traceback
 
             tb = traceback.extract_tb(e.__traceback__)
 
-            # Find the most relevant frame (prefer frames in the page file)
             relevant_frame = None
             page_path_str = str(page_path)
             for frame in reversed(tb):
@@ -328,15 +320,14 @@ class Renderer:
                 relevant_frame = tb[-1]
 
             if relevant_frame:
-                logger.code_error(
-                    title=type(e).__name__,
-                    message=str(e),
+                error_panel(
+                    type(e).__name__,
+                    str(e),
                     file_path=relevant_frame.filename,
                     line=relevant_frame.lineno,
                 )
             else:
                 error(f"Error rendering {page_path}: {e}")
-                traceback.print_exc()
             return None
 
         finally:
