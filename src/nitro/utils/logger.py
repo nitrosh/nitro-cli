@@ -94,7 +94,7 @@ def error_panel(
     if hint:
         content.append(f"\n  Hint: {hint}\n", style="cyan")
 
-    console.print(Panel(content, title=f"[bold red]{title}[/]", border_style="red"))
+    console.print(Panel(content, title=Text.from_markup(f"[bold red]{title}[/]"), border_style="red"))
 
 
 def step(current: int, total: int, message: str) -> None:
@@ -165,7 +165,7 @@ def server_panel(host: str, port: int, live_reload: bool = True) -> None:
   Live Reload: [green]{"enabled" if live_reload else "disabled"}[/]
 """
     console.print(
-        Panel(content, title="[bold]Development Server[/]", border_style="green")
+        Panel(content, title=Text.from_markup("[bold]Development Server[/]"), border_style="green")
     )
 
 
@@ -197,7 +197,7 @@ def build_summary(stats: dict, elapsed: str) -> None:
     )
     content = f"\n  Files: {count}\n  Size:  {size}\n  Time:  {elapsed}\n"
     console.print(
-        Panel(content, title="[bold green]Build Complete[/]", border_style="green")
+        Panel(content, title=Text.from_markup("[bold green]Build Complete[/]"), border_style="green")
     )
 
 
@@ -217,7 +217,7 @@ def scaffold_complete(project_name: str) -> None:
   [cyan]nitro dev[/]
 """
     console.print(
-        Panel(content, title="[bold green]Project Created[/]", border_style="green")
+        Panel(content, title=Text.from_markup("[bold green]Project Created[/]"), border_style="green")
     )
 
 
