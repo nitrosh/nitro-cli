@@ -117,7 +117,7 @@ def _deploy_netlify(build_dir: Path, prod: bool, verbose: bool):
         info(f"Running: {' '.join(cmd)}")
 
     try:
-        result = subprocess.run(cmd, capture_output=not verbose, text=True)
+        result = subprocess.run(cmd, capture_output=not verbose, text=True, timeout=300)
 
         if result.returncode == 0:
             success("Deployment successful!")
@@ -131,6 +131,9 @@ def _deploy_netlify(build_dir: Path, prod: bool, verbose: bool):
                 console.print(result.stderr)
             sys.exit(1)
 
+    except subprocess.TimeoutExpired:
+        error("Deployment timed out after 5 minutes")
+        sys.exit(1)
     except Exception as e:
         error(f"Deployment error: {e}")
         sys.exit(1)
@@ -160,7 +163,7 @@ def _deploy_vercel(build_dir: Path, prod: bool, verbose: bool):
         info(f"Running: {' '.join(cmd)}")
 
     try:
-        result = subprocess.run(cmd, capture_output=not verbose, text=True)
+        result = subprocess.run(cmd, capture_output=not verbose, text=True, timeout=300)
 
         if result.returncode == 0:
             success("Deployment successful!")
@@ -174,6 +177,9 @@ def _deploy_vercel(build_dir: Path, prod: bool, verbose: bool):
                 console.print(result.stderr)
             sys.exit(1)
 
+    except subprocess.TimeoutExpired:
+        error("Deployment timed out after 5 minutes")
+        sys.exit(1)
     except Exception as e:
         error(f"Deployment error: {e}")
         sys.exit(1)
@@ -212,7 +218,7 @@ def _deploy_cloudflare(build_dir: Path, prod: bool, verbose: bool):
         info(f"Running: {' '.join(cmd)}")
 
     try:
-        result = subprocess.run(cmd, capture_output=not verbose, text=True)
+        result = subprocess.run(cmd, capture_output=not verbose, text=True, timeout=300)
 
         if result.returncode == 0:
             success("Deployment successful!")
@@ -229,6 +235,9 @@ def _deploy_cloudflare(build_dir: Path, prod: bool, verbose: bool):
                 info(f"  wrangler pages project create {project_name}")
             sys.exit(1)
 
+    except subprocess.TimeoutExpired:
+        error("Deployment timed out after 5 minutes")
+        sys.exit(1)
     except Exception as e:
         error(f"Deployment error: {e}")
         sys.exit(1)

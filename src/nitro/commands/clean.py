@@ -95,9 +95,13 @@ def _get_dir_size(path: Path) -> int:
     try:
         for entry in path.rglob("*"):
             if entry.is_file():
-                total += entry.stat().st_size
-    except Exception:
-        pass
+                try:
+                    total += entry.stat().st_size
+                except (OSError, PermissionError):
+                    # Skip files we can't stat
+                    pass
+    except (OSError, PermissionError) as e:
+        warning(f"Could not calculate size of {path}: {e}")
     return total
 
 

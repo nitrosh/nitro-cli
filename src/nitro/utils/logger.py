@@ -111,8 +111,10 @@ def banner(subtitle: Optional[str] = None) -> None:
     text = Text()
     text.append("\n⚡ ", style="bold magenta")
     text.append("Nitro CLI", style="bold cyan")
+
     if subtitle:
         text.append(f" - {subtitle}", style="dim")
+
     text.append("\n")
     console.print(Panel(text, border_style="cyan", padding=(0, 2)))
 

@@ -203,9 +203,14 @@ def _format_dir_size(path: Path) -> str:
     try:
         for entry in path.rglob("*"):
             if entry.is_file():
-                total += entry.stat().st_size
-    except Exception:
-        pass
+                try:
+                    total += entry.stat().st_size
+                except (OSError, PermissionError):
+                    # Skip files we can't stat
+                    pass
+    except (OSError, PermissionError):
+        # Return unknown if we can't access the directory
+        return "?"
 
     if total < 1024:
         return f"{total}B"

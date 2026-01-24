@@ -1,4 +1,4 @@
-"""Serve command for local development server."""
+"""Serve command for the local development server."""
 
 import asyncio
 import signal
@@ -25,20 +25,24 @@ from ..utils import (
 
 
 @click.command()
-@click.option("--port", "-p", default=3000, help="Port number for the development server")
-@click.option("--host", "-h", default="localhost", help="Host address for the development server")
+@click.option(
+    "--port", "-p", default=3000, help="Port number for the development server"
+)
+@click.option(
+    "--host", "-h", default="localhost", help="Host address for the development server"
+)
 @click.option("--no-reload", is_flag=True, help="Disable live reload")
-@click.option("--open", "-o", "open_browser", is_flag=True, help="Open browser automatically")
+@click.option(
+    "--open", "-o", "open_browser", is_flag=True, help="Open browser automatically"
+)
 @click.option("--verbose", "-v", is_flag=True, help="Enable verbose output")
 @click.option("--debug", is_flag=True, help="Enable debug mode with full tracebacks")
-@click.option("--log-file", type=click.Path(), help="Write logs to a file")
-def serve(port, host, no_reload, open_browser, verbose, debug, log_file):
+def serve(port, host, no_reload, open_browser, verbose, debug):
     """Start a local development server with live reload."""
     if debug:
         set_level(LogLevel.DEBUG)
     elif verbose:
         set_level(LogLevel.VERBOSE)
-
     try:
         asyncio.run(serve_async(port, host, not no_reload, open_browser, debug))
     except KeyboardInterrupt:
@@ -56,13 +60,18 @@ async def serve_async(
     debug_mode: bool = False,
 ):
     """Async serve implementation."""
+
     banner("Development Server")
 
     generator = Generator()
 
-    if not generator.build_dir.exists() or not list(generator.build_dir.rglob("*.html")):
-        info("Build directory is empty. Generating site...")
-        success_result = generator.generate(verbose=False)
+    if not generator.build_dir.exists() or not list(
+        generator.build_dir.rglob("*.html")
+    ):
+        info("Build directory is empty. Generating ...")
+
+        # Run blocking generation in thread pool to avoid blocking event loop
+        success_result = await asyncio.to_thread(generator.generate, verbose=False)
         if not success_result:
             error_panel(
                 "Generation Failed",
@@ -81,8 +90,9 @@ async def serve_async(
 
     if open_browser:
         import webbrowser
+
         url = f"http://{host}:{port}"
-        webbrowser.open(url)
+        await asyncio.to_thread(webbrowser.open, url)
         info(f"Opened browser at {url}")
 
     watcher = None
@@ -98,39 +108,54 @@ async def serve_async(
                     relative_path = str(path.relative_to(generator.project_root))
                 except ValueError:
                     relative_path = path.name
+
                 hmr_update(relative_path)
 
                 should_notify = False
 
+                # Run blocking generator operations in thread pool
                 if "pages" in str(path):
                     if path.suffix == ".py" and path.name != "__init__.py":
                         hmr_update("page", "rebuilding...")
-                        if generator.regenerate_page(path, verbose=False):
+                        if await asyncio.to_thread(
+                            generator.regenerate_page, path, verbose=False
+                        ):
                             should_notify = True
                 elif "components" in str(path):
                     hmr_update("site", "rebuilding...")
-                    if generator.generate(verbose=False):
+                    if await asyncio.to_thread(generator.generate, verbose=False):
                         should_notify = True
                 elif "styles" in str(path) or "public" in str(path):
                     hmr_update("assets", "rebuilding...")
-                    generator._copy_assets(verbose=False)
+                    await asyncio.to_thread(generator._copy_assets, verbose=False)
                     should_notify = True
                 elif path.name == "nitro.config.py":
                     hmr_update("config", "rebuilding...")
                     generator = Generator()
-                    if generator.generate(verbose=False):
+                    if await asyncio.to_thread(generator.generate, verbose=False):
                         should_notify = True
                 else:
                     hmr_update("site", "rebuilding...")
-                    if generator.generate(verbose=False):
+                    if await asyncio.to_thread(generator.generate, verbose=False):
                         should_notify = True
 
                 if should_notify:
                     await server.notify_reload()
                     success("Done")
 
+        def _handle_async_exception(f):
+            """Handle exceptions from async file change processing."""
+            try:
+                f.result()
+            except Exception:
+                # Log but don't crash - this runs in watcher thread
+                import traceback
+
+                traceback.print_exc()
+
         def on_file_change_sync(path: Path) -> None:
-            asyncio.run_coroutine_threadsafe(on_file_change(path), loop)
+            future = asyncio.run_coroutine_threadsafe(on_file_change(path), loop)
+            future.add_done_callback(_handle_async_exception)
 
         watcher = Watcher(generator.project_root, on_file_change_sync)
         watcher.start()
@@ -139,7 +164,7 @@ async def serve_async(
 
     def signal_handler():
         newline()
-        info("Shutting down...")
+        info("Stopping server...")
         shutdown_event.set()
 
     loop = asyncio.get_running_loop()
@@ -157,6 +182,6 @@ async def serve_async(
         pass
     finally:
         if watcher:
-            watcher.stop()
-        await asyncio.sleep(0.1)
+            # Stop watcher in thread to avoid blocking event loop
+            await asyncio.to_thread(watcher.stop)
         await server.stop()

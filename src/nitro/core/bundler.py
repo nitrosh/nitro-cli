@@ -21,9 +21,11 @@ class Bundler:
             return 0
 
         count = 0
+        csscompressor_available = True
+
         for css_file in css_files:
             try:
-                if minify:
+                if minify and csscompressor_available:
                     try:
                         import csscompressor
 
@@ -35,7 +37,9 @@ class Bundler:
                         warning(
                             "csscompressor not installed, skipping CSS minification"
                         )
-                        break
+                        csscompressor_available = False
+                    except (IOError, OSError) as e:
+                        error(f"Error writing {css_file.name}: {e}")
             except Exception as e:
                 error(f"Error optimizing {css_file.name}: {e}")
 
@@ -133,8 +137,11 @@ class Bundler:
 
         xml_lines.append("</urlset>")
 
-        output_path.write_text("\n".join(xml_lines))
-        success(f"Generated sitemap with {len(urls)} URL(s)")
+        try:
+            output_path.write_text("\n".join(xml_lines))
+            success(f"Generated sitemap with {len(urls)} URL(s)")
+        except (IOError, OSError) as e:
+            error(f"Failed to write sitemap: {e}")
 
     def generate_robots_txt(self, base_url: str, output_path: Path) -> None:
         """Generate robots.txt."""
@@ -144,8 +151,11 @@ Allow: /
 
 Sitemap: {sitemap_url}
 """
-        output_path.write_text(robots_content)
-        success("Generated robots.txt")
+        try:
+            output_path.write_text(robots_content)
+            success("Generated robots.txt")
+        except (IOError, OSError) as e:
+            error(f"Failed to write robots.txt: {e}")
 
     def create_asset_manifest(self, output_path: Path) -> None:
         """Create asset manifest with file hashes."""
@@ -165,8 +175,11 @@ Sitemap: {sitemap_url}
 
         import json
 
-        output_path.write_text(json.dumps(manifest, indent=2))
-        success(f"Created asset manifest with {len(manifest)} file(s)")
+        try:
+            output_path.write_text(json.dumps(manifest, indent=2))
+            success(f"Created asset manifest with {len(manifest)} file(s)")
+        except (IOError, OSError) as e:
+            error(f"Failed to write asset manifest: {e}")
 
     def fingerprint_assets(self) -> Dict[str, str]:
         """Add content hashes to CSS and JS filenames for cache busting."""
