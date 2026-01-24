@@ -177,11 +177,11 @@ Page(
 
 ### File Path to URL Mapping
 
-| File Path | Output URL |
-|-----------|------------|
-| `src/pages/index.py` | `/index.html` |
-| `src/pages/about.py` | `/about.html` |
-| `src/pages/blog/post.py` | `/blog/post.html` |
+| File Path                     | Output URL             |
+|-------------------------------|------------------------|
+| `src/pages/index.py`          | `/index.html`          |
+| `src/pages/about.py`          | `/about.html`          |
+| `src/pages/blog/post.py`      | `/blog/post.html`      |
 | `src/pages/docs/api/index.py` | `/docs/api/index.html` |
 
 ## nitro-ui HTML Module
