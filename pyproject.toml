@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "nitro-cli"
-version = "1.0.2"
+version = "1.0.3"
 description = "Build static sites with Python code instead of templates"
 authors = [
     {name = "Sean Nieuwoudt", email = "sean@nitro.sh"}

@@ -8,6 +8,7 @@ import click
 from rich.table import Table
 from rich.panel import Panel
 from rich.box import ROUNDED
+from rich.text import Text
 
 from ..core.config import load_config
 from ..core.page import get_project_root
@@ -44,7 +45,7 @@ def _output_rich(project_root):
     env_table.add_row("Platform", platform.system())
     env_table.add_row("Architecture", platform.machine())
 
-    console.print(Panel(env_table, title="[bold]Environment[/]", border_style="blue"))
+    console.print(Panel(env_table, title=Text.from_markup("[bold]Environment[/]"), border_style="blue"))
 
     if project_root:
         config_path = project_root / "nitro.config.py"
@@ -67,7 +68,7 @@ def _output_rich(project_root):
                 proj_table.add_row("Plugins", ", ".join(config.plugins))
 
             console.print(
-                Panel(proj_table, title="[bold]Project[/]", border_style="green")
+                Panel(proj_table, title=Text.from_markup("[bold]Project[/]"), border_style="green")
             )
 
             _show_directory_stats(project_root, config)
@@ -75,7 +76,7 @@ def _output_rich(project_root):
             console.print(
                 Panel(
                     f"[dim]Project root:[/] {project_root}\n[yellow]No nitro.config.py found[/]",
-                    title="[bold]Project[/]",
+                    title=Text.from_markup("[bold]Project[/]"),
                     border_style="yellow",
                 )
             )
@@ -83,7 +84,7 @@ def _output_rich(project_root):
         console.print(
             Panel(
                 "[yellow]Not inside a Nitro project[/]\n[dim]Run 'nitro new <name>' to create one[/]",
-                title="[bold]Project[/]",
+                title=Text.from_markup("[bold]Project[/]"),
                 border_style="yellow",
             )
         )
@@ -131,7 +132,7 @@ def _show_directory_stats(project_root: Path, config):
 
     if stats_table.row_count > 0:
         console.print(
-            Panel(stats_table, title="[bold]Statistics[/]", border_style="cyan")
+            Panel(stats_table, title=Text.from_markup("[bold]Statistics[/]"), border_style="cyan")
         )
 
 
@@ -162,7 +163,7 @@ def _show_dependencies():
             deps_table.add_row(display_name, "-", "[red]✗ missing[/]")
 
     console.print(
-        Panel(deps_table, title="[bold]Dependencies[/]", border_style="magenta")
+        Panel(deps_table, title=Text.from_markup("[bold]Dependencies[/]"), border_style="magenta")
     )
 
 

@@ -172,7 +172,7 @@ class Generator:
                 # Parallel generation
                 progress.update(
                     task,
-                    description=f"[cyan]Generating {len(pages_to_build)} pages ({max_workers} workers)[/]",
+                    description=f"Generating {len(pages_to_build)} pages ({max_workers} workers)",
                 )
 
                 with ThreadPoolExecutor(max_workers=max_workers) as executor:
@@ -206,7 +206,7 @@ class Generator:
                 for page_path in pages_to_build:
                     # Update progress description with current file
                     relative_path = page_path.relative_to(self.project_root)
-                    progress.update(task, description=f"[cyan]{relative_path}[/]")
+                    progress.update(task, description=str(relative_path))
 
                     if verbose:
                         console.print(f"  Processing: {relative_path}")
