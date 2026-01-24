@@ -1,9 +1,11 @@
 """Logging utilities for Nitro CLI."""
 
+from contextlib import contextmanager
 from enum import IntEnum
-from typing import Optional
+from typing import Optional, Generator, Callable
 from rich.console import Console
 from rich.panel import Panel
+from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.text import Text
 
 
@@ -107,7 +109,7 @@ def newline() -> None:
 
 
 def banner(subtitle: Optional[str] = None) -> None:
-    """Display a branded banner."""
+    """Display a branded banner. (Deprecated: use header() instead)"""
     text = Text()
     text.append("\n⚡ ", style="bold magenta")
     text.append("Nitro CLI", style="bold cyan")
@@ -119,8 +121,45 @@ def banner(subtitle: Optional[str] = None) -> None:
     console.print(Panel(text, border_style="cyan", padding=(0, 2)))
 
 
+def header(action: str) -> None:
+    """Display a simple action header."""
+    console.print(f"\n[bold magenta]⚡[/] [bold]{action}[/]")
+
+
+@contextmanager
+def spinner(message: str) -> Generator[Callable[[str], None], None, None]:
+    """Show a spinner during a long operation.
+
+    Yields a function to update the spinner message.
+    The spinner disappears when the context exits.
+
+    Usage:
+        with spinner("Processing...") as update:
+            update("Step 1...")
+            do_step_1()
+            update("Step 2...")
+            do_step_2()
+    """
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        console=console,
+        transient=True,
+    ) as progress:
+        task = progress.add_task(message, total=None)
+        yield lambda msg: progress.update(task, description=msg)
+
+
+def server_ready(host: str, port: int, live_reload: bool = True) -> None:
+    """Display server ready message."""
+    reload_status = " [dim](live reload enabled)[/]" if live_reload else ""
+    console.print(
+        f"\n[green]✓[/] Ready at [bold green]http://{host}:{port}[/]{reload_status}\n"
+    )
+
+
 def server_panel(host: str, port: int, live_reload: bool = True) -> None:
-    """Display server info panel."""
+    """Display server info panel. (Deprecated: use server_ready() instead)"""
     content = f"""
   Local:       [bold green]http://{host}:{port}[/]
   Live Reload: [green]{"enabled" if live_reload else "disabled"}[/]
@@ -135,8 +174,22 @@ def hmr_update(file_path: str, action: str = "changed") -> None:
     console.print(f"[yellow][HMR][/yellow] [bold yellow]{file_path}[/] {action}")
 
 
+def build_complete(stats: dict, elapsed: str) -> None:
+    """Display simple build complete message."""
+    total = stats.get("total", 0)
+    count = stats.get("count", 0)
+    size = (
+        f"{total / 1024:.1f}KB"
+        if total < 1024 * 1024
+        else f"{total / (1024 * 1024):.1f}MB"
+    )
+    console.print(
+        f"\n[green]✓[/] Build complete: {count} files, {size} ({elapsed})"
+    )
+
+
 def build_summary(stats: dict, elapsed: str) -> None:
-    """Display build summary."""
+    """Display build summary. (Deprecated: use build_complete() instead)"""
     total = stats.get("total", 0)
     count = stats.get("count", 0)
     size = (
@@ -150,8 +203,14 @@ def build_summary(stats: dict, elapsed: str) -> None:
     )
 
 
+def project_created(project_name: str) -> None:
+    """Display simple project created message."""
+    console.print(f"\n[green]✓[/] Created [bold]{project_name}[/]")
+    console.print(f"\n  [dim]cd {project_name} && nitro dev[/]\n")
+
+
 def scaffold_complete(project_name: str) -> None:
-    """Display scaffold completion message."""
+    """Display scaffold completion message. (Deprecated: use project_created() instead)"""
     content = f"""
   Project [bold]{project_name}[/] created!
 
@@ -180,8 +239,13 @@ __all__ = [
     "step",
     "newline",
     "banner",
+    "header",
+    "spinner",
     "server_panel",
+    "server_ready",
     "build_summary",
+    "build_complete",
     "scaffold_complete",
+    "project_created",
     "hmr_update",
 ]

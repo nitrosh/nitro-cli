@@ -16,8 +16,9 @@ from ..utils import (
     info,
     success,
     error,
-    banner,
-    server_panel,
+    header,
+    spinner,
+    server_ready,
     error_panel,
     hmr_update,
     newline,
@@ -61,32 +62,30 @@ async def serve_async(
 ):
     """Async serve implementation."""
 
-    banner("Development Server")
+    header("Starting dev server...")
 
     generator = Generator()
 
     if not generator.build_dir.exists() or not list(
         generator.build_dir.rglob("*.html")
     ):
-        info("Build directory is empty. Generating ...")
-
-        # Run blocking generation in thread pool to avoid blocking event loop
-        success_result = await asyncio.to_thread(generator.generate, verbose=False)
-        if not success_result:
-            error_panel(
-                "Generation Failed",
-                "Failed to generate site before starting server",
-                hint="Check your page files for syntax errors",
-            )
-            return
-        success("Site generated")
+        with spinner("Generating site...") as update:
+            # Run blocking generation in thread pool to avoid blocking event loop
+            success_result = await asyncio.to_thread(generator.generate, verbose=False)
+            if not success_result:
+                error_panel(
+                    "Generation Failed",
+                    "Failed to generate site before starting server",
+                    hint="Check your page files for syntax errors",
+                )
+                return
 
     server = LiveReloadServer(
         build_dir=generator.build_dir, host=host, port=port, enable_reload=enable_reload
     )
     await server.start()
 
-    server_panel(host=host, port=port, live_reload=enable_reload)
+    server_ready(host=host, port=port, live_reload=enable_reload)
 
     if open_browser:
         import webbrowser

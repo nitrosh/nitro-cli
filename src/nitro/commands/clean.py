@@ -7,7 +7,7 @@ import click
 
 from ..core.config import load_config
 from ..core.page import get_project_root
-from ..utils import info, success, warning, error, banner, newline
+from ..utils import info, success, warning, error, header, spinner, newline
 
 
 @click.command()
@@ -46,42 +46,44 @@ def clean(clean_build, clean_cache, clean_all, dry_run, verbose):
         directories_to_clean.append(("cache", cache_dir))
 
     if dry_run:
-        banner("Clean (Dry Run)")
+        header("Clean (dry run)")
         info("The following would be deleted:")
         newline()
-    else:
-        banner("Clean")
+
+        total_size = 0
+        for name, dir_path in directories_to_clean:
+            if dir_path.exists():
+                size = _get_dir_size(dir_path)
+                total_size += size
+                info(f"  {name}: {dir_path} ({_format_size(size)})")
+            elif verbose:
+                warning(f"{name.capitalize()} directory not found: {dir_path}")
+
+        newline()
+        info(f"Total: {_format_size(total_size)} would be freed")
+        return
+
+    header("Cleaning build artifacts...")
 
     total_size = 0
     cleaned_count = 0
 
-    for name, dir_path in directories_to_clean:
-        if dir_path.exists():
-            size = _get_dir_size(dir_path)
-            total_size += size
-            size_str = _format_size(size)
-
-            if dry_run:
-                info(f"  {name}: {dir_path} ({size_str})")
-            else:
-                if verbose:
-                    info(f"Cleaning {name} directory: {dir_path}")
+    with spinner("Cleaning...") as update:
+        for name, dir_path in directories_to_clean:
+            if dir_path.exists():
+                update(f"Removing {name}...")
+                size = _get_dir_size(dir_path)
+                total_size += size
 
                 try:
                     shutil.rmtree(dir_path)
-                    success(f"Removed {name} directory ({size_str})")
                     cleaned_count += 1
                 except Exception as e:
                     error(f"Failed to remove {name}: {e}")
-        else:
-            if verbose or dry_run:
+            elif verbose:
                 warning(f"{name.capitalize()} directory not found: {dir_path}")
 
-    newline()
-
-    if dry_run:
-        info(f"Total: {_format_size(total_size)} would be freed")
-    elif cleaned_count > 0:
+    if cleaned_count > 0:
         success(
             f"Cleaned {cleaned_count} director{'ies' if cleaned_count > 1 else 'y'}, freed {_format_size(total_size)}"
         )

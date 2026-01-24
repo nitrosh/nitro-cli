@@ -20,7 +20,7 @@ from .serve import serve
 @click.pass_context
 def dev(ctx, port, host, no_reload, open_browser, verbose, debug):
     """
-    Start development server (alias for 'serve').
+    Start a development server (alias for 'serve').
 
     This is the recommended command for local development.
     Watches for file changes and automatically reloads the browser.

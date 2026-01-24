@@ -12,14 +12,11 @@ from ..utils import (
     LogLevel,
     set_level,
     console,
-    info,
     warning,
-    error,
     verbose,
-    banner,
+    header,
     error_panel,
-    newline,
-    scaffold_complete,
+    project_created,
 )
 
 
@@ -39,7 +36,7 @@ def new(project_name, no_git, no_install, verbose_flag, debug):
         set_level(LogLevel.VERBOSE)
 
     try:
-        banner("New Project")
+        header(f"Creating {project_name}...")
 
         project_path = Path.cwd() / project_name
 
@@ -51,13 +48,13 @@ def new(project_name, no_git, no_install, verbose_flag, debug):
             )
             sys.exit(1)
 
-        info(f"Creating new Nitro project: {project_name}")
         verbose(f"Location: {project_path}")
 
         with Progress(
             SpinnerColumn(),
             TextColumn("[progress.description]{task.description}"),
             console=console,
+            transient=True,
         ) as progress:
             task = progress.add_task("Creating project structure...", total=None)
             project_path.mkdir(parents=True)
@@ -131,10 +128,7 @@ def new(project_name, no_git, no_install, verbose_flag, debug):
                     )
                     warning("Install manually with: pip install -r requirements.txt")
 
-            progress.remove_task(task)
-
-        newline()
-        scaffold_complete(project_name)
+        project_created(project_name)
 
     except Exception as e:
         error_panel("Scaffold Error", str(e), hint="Use --debug for full traceback")
@@ -169,8 +163,8 @@ def create_requirements_txt(project_path: Path) -> None:
     """Create requirements.txt file."""
     requirements = """# Core dependencies
 nitro-cli>=0.1.0
-nitro-ui>=0.1.0
-nitro-datastore>=0.1.0
+nitro-ui>=1.0.3
+nitro-datastore>=1.0.0
 
 # Optional dependencies
 # markdown>=3.3.0  # For markdown support

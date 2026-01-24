@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "nitro-cli"
-version = "0.1.0"
+version = "1.0.0"
 description = "Static sites without the JavaScript fatigue"
 authors = [
     {name = "Sean Nieuwoudt", email = "sean@nitro.sh"}
@@ -46,7 +46,7 @@ dependencies = [
     "csscompressor>=0.9.5",
     "htmlmin>=0.1.12",
     "pillow>=9.0.0",
-    "nitro-ui>=1.0.2",
+    "nitro-ui>=1.0.3",
     "nitro-datastore>=1.0.0",
     "nitro-dispatch>=1.0.0",
 ]

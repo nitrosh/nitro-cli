@@ -9,7 +9,7 @@ import click
 
 from ..core.config import load_config
 from ..core.page import get_project_root
-from ..utils import info, success, error, banner, console
+from ..utils import info, success, error, header, spinner, console
 
 
 @click.command()
@@ -27,8 +27,6 @@ from ..utils import info, success, error, banner, console
 @click.option("--verbose", "-v", is_flag=True, help="Enable verbose output")
 def deploy(platform, build, prod, verbose):
     """Deploy the site to a hosting platform."""
-    banner("Deploy")
-
     project_root = get_project_root()
     if not project_root:
         project_root = Path.cwd()
@@ -41,7 +39,6 @@ def deploy(platform, build, prod, verbose):
         build_dir = project_root / "build"
 
     if build:
-        info("Building site for production...")
         from .build import build as build_cmd
 
         ctx = click.Context(build_cmd)
@@ -61,12 +58,12 @@ def deploy(platform, build, prod, verbose):
 
     if platform == "auto":
         platform = _detect_platform(project_root)
-        if platform:
-            info(f"Detected platform: {platform}")
-        else:
+        if not platform:
             error("Could not auto-detect deployment platform")
             info("Specify a platform with --platform [netlify|vercel|cloudflare]")
             sys.exit(1)
+
+    header(f"Deploying to {platform.capitalize()}...")
 
     if platform == "netlify":
         _deploy_netlify(build_dir, prod, verbose)
@@ -103,21 +100,18 @@ def _deploy_netlify(build_dir: Path, prod: bool, verbose: bool):
         info("Then run: netlify login")
         sys.exit(1)
 
-    info("Deploying to Netlify...")
-
     cmd = ["netlify", "deploy", "--dir", str(build_dir)]
     if prod:
         cmd.append("--prod")
-        info("Deploying to production...")
-    else:
-        info("Creating preview deployment...")
-        info("Use --prod for production deployment")
 
     if verbose:
         info(f"Running: {' '.join(cmd)}")
 
     try:
-        result = subprocess.run(cmd, capture_output=not verbose, text=True, timeout=300)
+        with spinner("Uploading to Netlify...") as update:
+            result = subprocess.run(
+                cmd, capture_output=not verbose, text=True, timeout=300
+            )
 
         if result.returncode == 0:
             success("Deployment successful!")
@@ -147,23 +141,19 @@ def _deploy_vercel(build_dir: Path, prod: bool, verbose: bool):
         info("Then run: vercel login")
         sys.exit(1)
 
-    info("Deploying to Vercel...")
-
     cmd = ["vercel", str(build_dir)]
     if prod:
         cmd.append("--prod")
-        info("Deploying to production...")
-    else:
-        info("Creating preview deployment...")
-        info("Use --prod for production deployment")
-
     cmd.extend(["--yes"])
 
     if verbose:
         info(f"Running: {' '.join(cmd)}")
 
     try:
-        result = subprocess.run(cmd, capture_output=not verbose, text=True, timeout=300)
+        with spinner("Uploading to Vercel...") as update:
+            result = subprocess.run(
+                cmd, capture_output=not verbose, text=True, timeout=300
+            )
 
         if result.returncode == 0:
             success("Deployment successful!")
@@ -193,8 +183,6 @@ def _deploy_cloudflare(build_dir: Path, prod: bool, verbose: bool):
         info("Then run: wrangler login")
         sys.exit(1)
 
-    info("Deploying to Cloudflare Pages...")
-
     project_root = get_project_root() or Path.cwd()
     project_name = project_root.name.lower().replace("_", "-").replace(" ", "-")
 
@@ -209,16 +197,15 @@ def _deploy_cloudflare(build_dir: Path, prod: bool, verbose: bool):
 
     if prod:
         cmd.extend(["--branch", "main"])
-        info("Deploying to production...")
-    else:
-        info("Creating preview deployment...")
-        info("Use --prod for production deployment")
 
     if verbose:
         info(f"Running: {' '.join(cmd)}")
 
     try:
-        result = subprocess.run(cmd, capture_output=not verbose, text=True, timeout=300)
+        with spinner("Uploading to Cloudflare...") as update:
+            result = subprocess.run(
+                cmd, capture_output=not verbose, text=True, timeout=300
+            )
 
         if result.returncode == 0:
             success("Deployment successful!")

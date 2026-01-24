@@ -6,17 +6,27 @@ A static site generator that lets you build websites using Python and [nitro-ui]
 
 - **Python-Powered** - Write pages in Python with nitro-ui instead of template languages
 - **Live Reload** - Development server with automatic browser refresh
-- **Incremental Builds** - Only rebuild changed pages
-- **Dynamic Routes** - Generate pages from data with `[slug].py` pattern
-- **Image Optimization** - Responsive images with WebP/AVIF conversion
+- **Incremental Builds** – Only rebuild changed pages
+- **Dynamic Routes** – Generate pages from data with `[slug].py` pattern
+- **Image Optimization** – Responsive images with WebP/AVIF conversion
 - **Islands Architecture** - Partial hydration for interactive components
-- **One-Click Deploy** - Netlify, Vercel, or Cloudflare Pages
+- **One-Click Deploy** – Netlify, Vercel, or Cloudflare Pages
 
 ## Installation
 
 ```bash
 pip install nitro-cli
 ```
+
+### AI Assistant Integration
+
+Add Nitro CLI knowledge to your AI coding assistant:
+
+```bash
+npx skills add nitrosh/nitro-cli
+```
+
+This enables AI assistants like Claude Code to understand Nitro CLI and generate correct nitro-ui code.
 
 ## Quick Start
 
@@ -68,14 +78,14 @@ def render(slug, title):
 
 ## Commands
 
-| Command | Description |
-|---------|-------------|
-| `nitro new <name>` | Create new project |
-| `nitro dev` | Start dev server with live reload |
-| `nitro build` | Build for production |
-| `nitro preview` | Preview production build |
-| `nitro clean` | Remove build artifacts |
-| `nitro deploy` | Deploy to hosting platform |
+| Command            | Description                       |
+|--------------------|-----------------------------------|
+| `nitro new <name>` | Create new project                |
+| `nitro dev`        | Start dev server with live reload |
+| `nitro build`      | Build for production              |
+| `nitro preview`    | Preview production build          |
+| `nitro clean`      | Remove build artifacts            |
+| `nitro deploy`     | Deploy to hosting platform        |
 
 Run `nitro <command> --help` for options.
 
@@ -94,9 +104,12 @@ config = Config(
 
 ## Ecosystem
 
-- [nitro-ui](https://github.com/nitrosh/nitro-ui) - HTML generation library
-- [nitro-datastore](https://github.com/nitrosh/nitro-datastore) - Data loading with dot notation
-- [nitro-dispatch](https://github.com/nitrosh/nitro-dispatch) - Plugin system
+Nitro isn’t just one library – it’s a growing toolkit of focused building blocks you can mix and match to ship faster:
+
+* **[nitro-ui](https://github.com/nitrosh/nitro-ui)** — Generate clean, reusable HTML with a lightweight, developer-friendly API
+* **[nitro-datastore](https://github.com/nitrosh/nitro-datastore)** — Load and access data effortlessly using simple dot-notation paths
+* **[nitro-dispatch](https://github.com/nitrosh/nitro-dispatch)** — A flexible plugin system to extend features without touching core code
+* **[nitro-validate](https://github.com/nitrosh/nitro-validate)** — Fast, reliable data validation to keep your inputs and payloads rock-solid
 
 ## License
 

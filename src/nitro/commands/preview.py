@@ -16,8 +16,8 @@ from ..utils import (
     info,
     error,
     warning,
-    banner,
-    server_panel,
+    header,
+    server_ready,
     newline,
 )
 
@@ -53,7 +53,7 @@ async def preview_async(
     port: int, host: str, open_browser: bool, debug_mode: bool = False
 ):
     """Async preview implementation."""
-    banner("Production Preview")
+    header("Starting preview server...")
 
     project_root = get_project_root()
     if not project_root:
@@ -82,9 +82,7 @@ async def preview_async(
     )
     await server.start()
 
-    server_panel(host=host, port=port, live_reload=False)
-    warning("This is a preview of your production build (no live reload)")
-    newline()
+    server_ready(host=host, port=port, live_reload=False)
 
     if open_browser:
         import webbrowser
