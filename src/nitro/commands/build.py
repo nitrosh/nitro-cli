@@ -158,7 +158,9 @@ def build(
                         resp_count += 1
 
                 if resp_count:
-                    verbose(f"Processed {resp_count} HTML file(s) with responsive images")
+                    verbose(
+                        f"Processed {resp_count} HTML file(s) with responsive images"
+                    )
 
             if fingerprint:
                 update("Fingerprinting assets...")
@@ -185,7 +187,9 @@ def build(
             html_files = list(generator.build_dir.rglob("*.html"))
             sitemap_path = generator.build_dir / "sitemap.xml"
             bundler.generate_sitemap(
-                base_url=config.base_url, html_files=html_files, output_path=sitemap_path
+                base_url=config.base_url,
+                html_files=html_files,
+                output_path=sitemap_path,
             )
             verbose(f"Created sitemap.xml with {len(html_files)} URLs")
 

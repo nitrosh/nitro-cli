@@ -255,12 +255,14 @@ class TestRenderPage:
 
             # Create a simple page
             page_file = pages_dir / "test.py"
-            page_file.write_text("""
+            page_file.write_text(
+                """
 from nitro.core.page import Page
 
 def render():
     return Page(title="Test", content="<h1>Hello World</h1>")
-""")
+"""
+            )
 
             config = Config()
             renderer = Renderer(config)
@@ -279,14 +281,16 @@ def render():
 
             # Create a page with a mock element
             page_file = pages_dir / "element.py"
-            page_file.write_text("""
+            page_file.write_text(
+                """
 class MockElement:
     def render(self):
         return "<div>Element content</div>"
 
 def render():
     return MockElement()
-""")
+"""
+            )
 
             config = Config()
             renderer = Renderer(config)
