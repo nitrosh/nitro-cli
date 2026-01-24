@@ -347,11 +347,11 @@ class Renderer:
         """Post-process HTML (minify or pretty print)."""
         if self.minify_html:
             try:
-                import htmlmin
+                import minify_html
 
-                html = htmlmin.minify(html, remove_empty_space=True)
+                html = minify_html.minify(html, minify_css=True, minify_js=True)
             except ImportError:
-                warning("htmlmin not installed, skipping minification")
+                warning("minify-html not installed, skipping minification")
 
         elif self.pretty_print:
             try:
