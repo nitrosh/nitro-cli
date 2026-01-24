@@ -1,6 +1,6 @@
 """Footer component."""
 
-from nitro_ui import Footer as UIFooter, Paragraph, Href
+from nitro_ui.html import footer, p, a
 
 
 def Footer():
@@ -9,16 +9,12 @@ def Footer():
     Returns:
         Footer element
     """
-    return UIFooter(
-        Paragraph(
+    return footer(
+        p(
             "Built with ",
-            Href(
-                "Nitro", href="https://github.com/nitro-sh/nitro-cli", target="_blank"
-            ),
+            a("Nitro", href="https://github.com/nitro-sh/nitro-cli", target="_blank"),
             " and ",
-            Href(
-                "nitro-ui", href="https://github.com/nitrosh/nitro-ui", target="_blank"
-            ),
+            a("nitro-ui", href="https://github.com/nitro-sh/nitro-ui", target="_blank"),
         ),
         class_name="footer",
     )

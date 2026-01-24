@@ -16,9 +16,14 @@ from .logger import (
     step,
     newline,
     banner,
+    header,
+    spinner,
     server_panel,
+    server_ready,
     build_summary,
+    build_complete,
     scaffold_complete,
+    project_created,
     hmr_update,
 )
 
@@ -38,8 +43,13 @@ __all__ = [
     "step",
     "newline",
     "banner",
+    "header",
+    "spinner",
     "server_panel",
+    "server_ready",
     "build_summary",
+    "build_complete",
     "scaffold_complete",
+    "project_created",
     "hmr_update",
 ]

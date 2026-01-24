@@ -11,7 +11,7 @@ from rich.box import ROUNDED
 
 from ..core.config import load_config
 from ..core.page import get_project_root
-from ..utils import console, banner
+from ..utils import console, header
 
 
 @click.command()
@@ -30,7 +30,7 @@ def _output_rich(project_root):
     """Output info using Rich formatting."""
     from .. import __version__
 
-    banner("Project Info")
+    header("Project info")
 
     env_table = Table(box=ROUNDED, show_header=False, padding=(0, 2), expand=False)
     env_table.add_column("Key", style="dim")
@@ -203,9 +203,14 @@ def _format_dir_size(path: Path) -> str:
     try:
         for entry in path.rglob("*"):
             if entry.is_file():
-                total += entry.stat().st_size
-    except Exception:
-        pass
+                try:
+                    total += entry.stat().st_size
+                except (OSError, PermissionError):
+                    # Skip files we can't stat
+                    pass
+    except (OSError, PermissionError):
+        # Return unknown if we can't access the directory
+        return "?"
 
     if total < 1024:
         return f"{total}B"

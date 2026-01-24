@@ -1,5 +1,6 @@
 """Renderer for generating HTML from nitro-ui pages."""
 
+import threading
 from typing import Any, Optional, List
 from pathlib import Path
 import importlib.util
@@ -7,6 +8,9 @@ import sys
 
 from ..core.page import Page
 from ..utils import error, warning, error_panel
+
+# Lock for thread-safe sys.path and sys.modules manipulation
+_import_lock = threading.Lock()
 
 
 class Renderer:
@@ -31,16 +35,17 @@ class Renderer:
         paths_to_remove = []
 
         try:
-            if str(project_root) not in sys.path:
-                sys.path.insert(0, str(project_root))
-                paths_to_remove.append(str(project_root))
+            with _import_lock:
+                if str(project_root) not in sys.path:
+                    sys.path.insert(0, str(project_root))
+                    paths_to_remove.append(str(project_root))
 
-            src_dir = project_root / "src"
-            if str(src_dir) not in sys.path:
-                sys.path.insert(0, str(src_dir))
-                paths_to_remove.append(str(src_dir))
+                src_dir = project_root / "src"
+                if str(src_dir) not in sys.path:
+                    sys.path.insert(0, str(src_dir))
+                    paths_to_remove.append(str(src_dir))
 
-            self._invalidate_project_modules(project_root)
+                self._invalidate_project_modules(project_root)
 
             module_name = f"dynamic_page_{page_path.stem}_{id(self)}"
             spec = importlib.util.spec_from_file_location(module_name, page_path)
@@ -98,9 +103,10 @@ class Renderer:
             error(f"Error processing dynamic page {page_path}: {e}")
 
         finally:
-            for path in paths_to_remove:
-                if path in sys.path:
-                    sys.path.remove(path)
+            with _import_lock:
+                for path in paths_to_remove:
+                    if path in sys.path:
+                        sys.path.remove(path)
 
         return results
 
@@ -124,16 +130,17 @@ class Renderer:
         paths_to_remove = []
 
         try:
-            if str(project_root) not in sys.path:
-                sys.path.insert(0, str(project_root))
-                paths_to_remove.append(str(project_root))
+            with _import_lock:
+                if str(project_root) not in sys.path:
+                    sys.path.insert(0, str(project_root))
+                    paths_to_remove.append(str(project_root))
 
-            src_dir = project_root / "src"
-            if str(src_dir) not in sys.path:
-                sys.path.insert(0, str(src_dir))
-                paths_to_remove.append(str(src_dir))
+                src_dir = project_root / "src"
+                if str(src_dir) not in sys.path:
+                    sys.path.insert(0, str(src_dir))
+                    paths_to_remove.append(str(src_dir))
 
-            self._invalidate_project_modules(project_root)
+                self._invalidate_project_modules(project_root)
 
             module_name = f"page_{page_path.stem}_{id(self)}"
             spec = importlib.util.spec_from_file_location(module_name, page_path)
@@ -254,9 +261,10 @@ class Renderer:
             return None
 
         finally:
-            for path in paths_to_remove:
-                if path in sys.path:
-                    sys.path.remove(path)
+            with _import_lock:
+                for path in paths_to_remove:
+                    if path in sys.path:
+                        sys.path.remove(path)
 
     def _suggest_name_fix(self, error_msg: str) -> Optional[str]:
         """Suggest fixes for common name errors."""
@@ -339,11 +347,11 @@ class Renderer:
         """Post-process HTML (minify or pretty print)."""
         if self.minify_html:
             try:
-                import htmlmin
+                import minify_html
 
-                html = htmlmin.minify(html, remove_empty_space=True)
+                html = minify_html.minify(html, minify_css=True, minify_js=True)
             except ImportError:
-                warning("htmlmin not installed, skipping minification")
+                warning("minify-html not installed, skipping minification")
 
         elif self.pretty_print:
             try:

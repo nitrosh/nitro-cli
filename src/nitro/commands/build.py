@@ -13,14 +13,12 @@ from ..core.islands import IslandProcessor, IslandConfig
 from ..utils import (
     LogLevel,
     set_level,
-    info,
-    success,
     error,
     verbose,
-    banner,
+    header,
+    spinner,
     error_panel,
-    newline,
-    build_summary,
+    build_complete,
 )
 
 
@@ -78,7 +76,7 @@ def build(
         set_level(LogLevel.QUIET)
 
     try:
-        banner("Production Build")
+        header("Building for production...")
         start_time = datetime.now()
 
         generator = Generator()
@@ -86,11 +84,6 @@ def build(
         if output != "build":
             generator.build_dir = generator.project_root / output
 
-        if clean:
-            info("Cleaning build directory...")
-            generator.clean()
-
-        info("Building site for production...")
         verbose(f"Output directory: {generator.build_dir}")
 
         config = load_config(generator.project_root / "nitro.config.py")
@@ -108,94 +101,101 @@ def build(
             },
         )
 
-        info("Generating pages...")
-        success_result = generator.generate(verbose=verbose_flag, force=force or clean)
+        with spinner("Generating pages...") as update:
+            if clean:
+                update("Cleaning build directory...")
+                generator.clean()
 
-        if not success_result:
-            error_panel(
-                "Build Failed",
-                "Failed to generate site during build",
-                hint="Check your page files for syntax errors",
-            )
-            sys.exit(1)
-
-        bundler = Bundler(generator.build_dir)
-
-        if minify:
-            info("Optimizing CSS...")
-            css_count = bundler.optimize_css(minify=True)
-            if css_count:
-                verbose(f"Minified {css_count} CSS file(s)")
-
-        if optimize:
-            info("Optimizing images...")
-            img_count = bundler.optimize_images(quality=85)
-            if img_count:
-                verbose(f"Optimized {img_count} image(s)")
-
-        if responsive:
-            info("Generating responsive images...")
-            img_optimizer = ImageOptimizer(
-                ImageConfig(
-                    formats=["avif", "webp", "original"],
-                    sizes=[320, 640, 768, 1024, 1280, 1920],
-                    lazy_load=True,
-                )
+            update("Generating pages...")
+            success_result = generator.generate(
+                verbose=verbose_flag, force=force or clean
             )
 
-            html_files = list(generator.build_dir.rglob("*.html"))
-            resp_count = 0
-            for html_file in html_files:
-                original_content = html_file.read_text()
-                processed_content = img_optimizer.process_html(
-                    original_content,
-                    source_dir=generator.project_root / "static",
-                    output_dir=generator.build_dir,
-                    base_url="/",
+            if not success_result:
+                error_panel(
+                    "Build Failed",
+                    "Failed to generate site during build",
+                    hint="Check your page files for syntax errors",
                 )
-                if processed_content != original_content:
-                    html_file.write_text(processed_content)
-                    resp_count += 1
+                sys.exit(1)
 
-            if resp_count:
-                verbose(f"Processed {resp_count} HTML file(s) with responsive images")
+            bundler = Bundler(generator.build_dir)
 
-        if fingerprint:
-            info("Fingerprinting assets...")
-            asset_mapping = bundler.fingerprint_assets()
-            if asset_mapping:
-                verbose(f"Fingerprinted {len(asset_mapping)} asset(s)")
+            if minify:
+                update("Optimizing CSS...")
+                css_count = bundler.optimize_css(minify=True)
+                if css_count:
+                    verbose(f"Minified {css_count} CSS file(s)")
 
-        if islands:
-            info("Processing islands...")
-            island_processor = IslandProcessor(IslandConfig(debug=debug))
+            if optimize:
+                update("Optimizing images...")
+                img_count = bundler.optimize_images(quality=85)
+                if img_count:
+                    verbose(f"Optimized {img_count} image(s)")
+
+            if responsive:
+                update("Generating responsive images...")
+                img_optimizer = ImageOptimizer(
+                    ImageConfig(
+                        formats=["avif", "webp", "original"],
+                        sizes=[320, 640, 768, 1024, 1280, 1920],
+                        lazy_load=True,
+                    )
+                )
+
+                html_files = list(generator.build_dir.rglob("*.html"))
+                resp_count = 0
+                for html_file in html_files:
+                    original_content = html_file.read_text()
+                    processed_content = img_optimizer.process_html(
+                        original_content,
+                        source_dir=generator.project_root / "static",
+                        output_dir=generator.build_dir,
+                        base_url="/",
+                    )
+                    if processed_content != original_content:
+                        html_file.write_text(processed_content)
+                        resp_count += 1
+
+                if resp_count:
+                    verbose(f"Processed {resp_count} HTML file(s) with responsive images")
+
+            if fingerprint:
+                update("Fingerprinting assets...")
+                asset_mapping = bundler.fingerprint_assets()
+                if asset_mapping:
+                    verbose(f"Fingerprinted {len(asset_mapping)} asset(s)")
+
+            if islands:
+                update("Processing islands...")
+                island_processor = IslandProcessor(IslandConfig(debug=debug))
+                html_files = list(generator.build_dir.rglob("*.html"))
+                islands_count = 0
+                for html_file in html_files:
+                    content = html_file.read_text()
+                    if "data-island=" in content:
+                        processed = island_processor.process_html(content)
+                        html_file.write_text(processed)
+                        islands_count += 1
+
+                if islands_count:
+                    verbose(f"Processed {islands_count} page(s) with islands")
+
+            update("Generating metadata...")
             html_files = list(generator.build_dir.rglob("*.html"))
-            islands_count = 0
-            for html_file in html_files:
-                content = html_file.read_text()
-                if "data-island=" in content:
-                    processed = island_processor.process_html(content)
-                    html_file.write_text(processed)
-                    islands_count += 1
+            sitemap_path = generator.build_dir / "sitemap.xml"
+            bundler.generate_sitemap(
+                base_url=config.base_url, html_files=html_files, output_path=sitemap_path
+            )
+            verbose(f"Created sitemap.xml with {len(html_files)} URLs")
 
-            if islands_count:
-                verbose(f"Processed {islands_count} page(s) with islands")
+            robots_path = generator.build_dir / "robots.txt"
+            bundler.generate_robots_txt(config.base_url, robots_path)
+            verbose("Created robots.txt")
 
-        info("Generating metadata...")
-        html_files = list(generator.build_dir.rglob("*.html"))
-        sitemap_path = generator.build_dir / "sitemap.xml"
-        bundler.generate_sitemap(
-            base_url=config.base_url, html_files=html_files, output_path=sitemap_path
-        )
-        verbose(f"Created sitemap.xml with {len(html_files)} URLs")
-
-        robots_path = generator.build_dir / "robots.txt"
-        bundler.generate_robots_txt(config.base_url, robots_path)
-        verbose("Created robots.txt")
-
-        manifest_path = generator.build_dir / "manifest.json"
-        bundler.create_asset_manifest(manifest_path)
-        verbose("Created manifest.json")
+            manifest_path = generator.build_dir / "manifest.json"
+            bundler.create_asset_manifest(manifest_path)
+            verbose("Created manifest.json")
 
         stats = bundler.calculate_build_size()
 
@@ -213,11 +213,7 @@ def build(
         elapsed = (datetime.now() - start_time).total_seconds()
         elapsed_str = f"{elapsed:.2f}s" if elapsed >= 1 else f"{elapsed * 1000:.0f}ms"
 
-        newline()
-        build_summary(stats=stats, elapsed=elapsed_str)
-
-        newline()
-        success(f"Production build complete! Output: {generator.build_dir}")
+        build_complete(stats=stats, elapsed=elapsed_str)
 
     except Exception as e:
         error_panel("Build Error", str(e), hint="Use --debug for full traceback")

@@ -16,16 +16,20 @@ from ..utils import (
     info,
     error,
     warning,
-    banner,
-    server_panel,
+    header,
+    server_ready,
     newline,
 )
 
 
 @click.command()
 @click.option("--port", "-p", default=4000, help="Port number for the preview server")
-@click.option("--host", "-h", default="localhost", help="Host address for the preview server")
-@click.option("--open", "-o", "open_browser", is_flag=True, help="Open browser automatically")
+@click.option(
+    "--host", "-h", default="localhost", help="Host address for the preview server"
+)
+@click.option(
+    "--open", "-o", "open_browser", is_flag=True, help="Open browser automatically"
+)
 @click.option("--verbose", "-v", is_flag=True, help="Enable verbose output")
 @click.option("--debug", is_flag=True, help="Enable debug mode")
 @click.pass_context
@@ -45,9 +49,11 @@ def preview(ctx, port, host, open_browser, verbose, debug):
         sys.exit(1)
 
 
-async def preview_async(port: int, host: str, open_browser: bool, debug_mode: bool = False):
+async def preview_async(
+    port: int, host: str, open_browser: bool, debug_mode: bool = False
+):
     """Async preview implementation."""
-    banner("Production Preview")
+    header("Starting preview server...")
 
     project_root = get_project_root()
     if not project_root:
@@ -71,17 +77,18 @@ async def preview_async(port: int, host: str, open_browser: bool, debug_mode: bo
         info("Run 'nitro build' first to create a production build")
         return
 
-    server = LiveReloadServer(build_dir=build_dir, host=host, port=port, enable_reload=False)
+    server = LiveReloadServer(
+        build_dir=build_dir, host=host, port=port, enable_reload=False
+    )
     await server.start()
 
-    server_panel(host=host, port=port, live_reload=False)
-    warning("This is a preview of your production build (no live reload)")
-    newline()
+    server_ready(host=host, port=port, live_reload=False)
 
     if open_browser:
         import webbrowser
+
         url = f"http://{host}:{port}"
-        webbrowser.open(url)
+        await asyncio.to_thread(webbrowser.open, url)
         info(f"Opened browser at {url}")
 
     shutdown_event = asyncio.Event()
@@ -105,5 +112,4 @@ async def preview_async(port: int, host: str, open_browser: bool, debug_mode: bo
     except asyncio.CancelledError:
         pass
     finally:
-        await asyncio.sleep(0.1)
         await server.stop()

@@ -78,15 +78,16 @@ def main(ctx):
         show_welcome()
 
 
-# Available Commands
-main.add_command(new)
-main.add_command(serve)
-main.add_command(dev)
-main.add_command(build)
-main.add_command(preview)
-main.add_command(clean)
-main.add_command(info)
-main.add_command(deploy)
+# Register commands (type: ignore needed because Click decorators transform functions to Commands)
+
+main.add_command(new)  # type: ignore[arg-type]
+main.add_command(serve)  # type: ignore[arg-type]
+main.add_command(dev)  # type: ignore[arg-type]
+main.add_command(build)  # type: ignore[arg-type]
+main.add_command(preview)  # type: ignore[arg-type]
+main.add_command(clean)  # type: ignore[arg-type]
+main.add_command(info)  # type: ignore[arg-type]
+main.add_command(deploy)  # type: ignore[arg-type]
 
 
 if __name__ == "__main__":

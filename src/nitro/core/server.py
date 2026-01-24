@@ -1,5 +1,6 @@
 """Development server for Nitro sites."""
 
+import asyncio
 import mimetypes
 from pathlib import Path
 from typing import Set, Optional
@@ -7,7 +8,7 @@ from typing import Set, Optional
 import aiofiles
 from aiohttp import web, WSMsgType
 
-from ..utils import success, info, error
+from ..utils import success, info, error, warning
 
 
 class LiveReloadServer:
@@ -51,29 +52,33 @@ class LiveReloadServer:
     async def serve_file(self, path: str) -> web.Response:
         file_path = self.build_dir / path
 
+        # Resolve paths asynchronously to avoid blocking the event loop
         try:
-            resolved_path = file_path.resolve()
-            build_dir_resolved = self.build_dir.resolve()
+            resolved_path = await asyncio.to_thread(file_path.resolve)
+            build_dir_resolved = await asyncio.to_thread(self.build_dir.resolve)
             if not resolved_path.is_relative_to(build_dir_resolved):
+                warning(f"Path traversal attempt blocked: {path}")
                 return web.Response(text="Forbidden", status=403)
         except (ValueError, OSError):
             return web.Response(text="Forbidden", status=403)
 
-        if not file_path.exists():
-            if file_path.suffix == ".html":
-                alt_path = self.build_dir / path.replace(".html", "")
-                if alt_path.exists():
-                    file_path = alt_path
+        # Use resolved_path consistently after security check
+        if not await asyncio.to_thread(resolved_path.exists):
+            if resolved_path.suffix == ".html":
+                alt_path = build_dir_resolved / path.replace(".html", "")
+                alt_resolved = await asyncio.to_thread(alt_path.resolve)
+                if await asyncio.to_thread(alt_resolved.exists):
+                    resolved_path = alt_resolved
                 else:
                     return web.Response(text="Not Found", status=404)
             else:
                 return web.Response(text="Not Found", status=404)
 
         try:
-            async with aiofiles.open(file_path, "rb") as f:
+            async with aiofiles.open(resolved_path, "rb") as f:
                 content = await f.read()
 
-            mime_type, _ = mimetypes.guess_type(str(file_path))
+            mime_type, _ = mimetypes.guess_type(str(resolved_path))
             if mime_type is None:
                 mime_type = "application/octet-stream"
 
@@ -162,7 +167,8 @@ class LiveReloadServer:
         for ws in list(self.websockets):
             try:
                 await ws.send_str(message)
-            except Exception:
+            except Exception as e:
+                warning(f"Failed to send reload notification to client: {e}")
                 dead_sockets.add(ws)
 
         self.websockets -= dead_sockets
@@ -189,8 +195,9 @@ class LiveReloadServer:
                 try:
                     if not ws.closed:
                         await ws.close(code=1001, message=b"Server shutting down")
-                except Exception:
-                    pass
+                except Exception as e:
+                    # Log but continue cleanup - client may already be disconnected
+                    warning(f"Error closing WebSocket during shutdown: {e}")
             self.websockets.clear()
 
         if self.runner:

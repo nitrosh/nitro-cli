@@ -17,11 +17,10 @@ from .serve import serve
 )
 @click.option("--verbose", "-v", is_flag=True, help="Enable verbose output")
 @click.option("--debug", is_flag=True, help="Enable debug mode with full tracebacks")
-@click.option("--log-file", type=click.Path(), help="Write logs to a file")
 @click.pass_context
-def dev(ctx, port, host, no_reload, open_browser, verbose, debug, log_file):
+def dev(ctx, port, host, no_reload, open_browser, verbose, debug):
     """
-    Start development server (alias for 'serve').
+    Start a development server (alias for 'serve').
 
     This is the recommended command for local development.
     Watches for file changes and automatically reloads the browser.
@@ -35,5 +34,4 @@ def dev(ctx, port, host, no_reload, open_browser, verbose, debug, log_file):
         open_browser=open_browser,
         verbose=verbose,
         debug=debug,
-        log_file=log_file,
     )
