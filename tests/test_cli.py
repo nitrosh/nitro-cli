@@ -91,7 +91,9 @@ class TestNewCommand:
         runner = CliRunner()
         with tempfile.TemporaryDirectory() as tmpdir:
             with runner.isolated_filesystem(temp_dir=tmpdir):
-                result = runner.invoke(main, ["new", "test-project", "--no-git", "--no-install"])
+                result = runner.invoke(
+                    main, ["new", "test-project", "--no-git", "--no-install"]
+                )
 
                 assert result.exit_code == 0
                 assert Path("test-project").exists()
@@ -122,7 +124,9 @@ class TestCleanCommand:
         with tempfile.TemporaryDirectory() as tmpdir:
             with runner.isolated_filesystem(temp_dir=tmpdir):
                 # Create project structure
-                Path("nitro.config.py").write_text("from nitro import Config\nconfig = Config()")
+                Path("nitro.config.py").write_text(
+                    "from nitro import Config\nconfig = Config()"
+                )
                 Path("src/pages").mkdir(parents=True)
                 Path("build").mkdir()
                 (Path("build") / "index.html").write_text("<html></html>")
@@ -142,9 +146,9 @@ class TestInfoCommand:
         with tempfile.TemporaryDirectory() as tmpdir:
             with runner.isolated_filesystem(temp_dir=tmpdir):
                 # Create project structure
-                config_content = '''from nitro import Config
+                config_content = """from nitro import Config
 config = Config(site_name="Test Site", base_url="https://test.com")
-'''
+"""
                 Path("nitro.config.py").write_text(config_content)
                 Path("src/pages").mkdir(parents=True)
 

@@ -135,9 +135,7 @@ class TestGenerateSitemap:
             output_path = build_dir / "sitemap.xml"
 
             bundler = Bundler(build_dir)
-            bundler.generate_sitemap(
-                "https://example.com", html_files, output_path
-            )
+            bundler.generate_sitemap("https://example.com", html_files, output_path)
 
             assert output_path.exists()
             content = output_path.read_text()
@@ -158,9 +156,7 @@ class TestGenerateSitemap:
             output_path = build_dir / "sitemap.xml"
 
             bundler = Bundler(build_dir)
-            bundler.generate_sitemap(
-                "https://example.com", html_files, output_path
-            )
+            bundler.generate_sitemap("https://example.com", html_files, output_path)
 
             content = output_path.read_text()
             # Index entry should have 1.0 priority

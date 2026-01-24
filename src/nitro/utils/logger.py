@@ -183,9 +183,7 @@ def build_complete(stats: dict, elapsed: str) -> None:
         if total < 1024 * 1024
         else f"{total / (1024 * 1024):.1f}MB"
     )
-    console.print(
-        f"\n[green]✓[/] Build complete: {count} files, {size} ({elapsed})"
-    )
+    console.print(f"\n[green]✓[/] Build complete: {count} files, {size} ({elapsed})")
 
 
 def build_summary(stats: dict, elapsed: str) -> None:

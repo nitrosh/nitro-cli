@@ -63,14 +63,16 @@ class TestLoadConfig:
         """Should load config from Python file."""
         with tempfile.TemporaryDirectory() as tmpdir:
             config_path = Path(tmpdir) / "nitro.config.py"
-            config_path.write_text("""
+            config_path.write_text(
+                """
 from nitro import Config
 
 config = Config(
     site_name="Loaded Site",
     base_url="https://loaded.com",
 )
-""")
+"""
+            )
             loaded = load_config(config_path)
 
             assert loaded.site_name == "Loaded Site"
