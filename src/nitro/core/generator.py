@@ -396,11 +396,16 @@ class Generator:
             styles_dest = self.build_dir / "assets" / "styles"
             self._copy_directory(styles_src, styles_dest, "styles", verbose)
 
-        # Copy public files
+        # Copy public files (src/public/ -> build/)
         public_src = self.source_dir / "public"
         if public_src.exists():
             # Copy public files to root of build directory
             self._copy_directory(public_src, self.build_dir, "public", verbose)
+
+        # Copy static files (static/ -> build/)
+        static_src = self.project_root / "static"
+        if static_src.exists():
+            self._copy_directory(static_src, self.build_dir, "static", verbose)
 
     def _copy_directory(
         self, src: Path, dest: Path, name: str, verbose: bool = False

@@ -3,6 +3,7 @@
 from typing import List, Dict
 from pathlib import Path
 import hashlib
+import re
 
 from ..utils import success, warning, error
 
@@ -220,24 +221,16 @@ Sitemap: {sitemap_url}
                     old_filename = Path(old_path).name
                     new_filename = Path(new_path).name
 
-                    patterns = [
-                        (f'href="{old_path}"', f'href="{new_path}"'),
-                        (f"href='{old_path}'", f"href='{new_path}'"),
-                        (f'src="{old_path}"', f'src="{new_path}"'),
-                        (f"src='{old_path}'", f"src='{new_path}'"),
-                        (f'href="/{old_path}"', f'href="/{new_path}"'),
-                        (f"href='/{old_path}'", f"href='/{new_path}'"),
-                        (f'src="/{old_path}"', f'src="/{new_path}"'),
-                        (f"src='/{old_path}'", f"src='/{new_path}'"),
-                        (f'href="{old_filename}"', f'href="{new_filename}"'),
-                        (f"href='{old_filename}'", f"href='{new_filename}'"),
-                        (f'src="{old_filename}"', f'src="{new_filename}"'),
-                        (f"src='{old_filename}'", f"src='{new_filename}'"),
-                    ]
-
-                    for old_pattern, new_pattern in patterns:
-                        if old_pattern in content:
-                            content = content.replace(old_pattern, new_pattern)
+                    # Use regex to match href/src with optional quotes and optional leading slash
+                    # This handles quoted, unquoted, and minified HTML attributes
+                    for path_variant in [old_path, old_filename]:
+                        # Pattern matches: href="path", href='path', href=/path, href=path
+                        # Captures the attribute name (href or src) and replaces with quoted new path
+                        pattern = r'((?:href|src)=)["\']?(/?' + re.escape(path_variant) + r')["\']?(?=[\s>])'
+                        replacement = r'\1"/' + new_path + '"'
+                        new_content = re.sub(pattern, replacement, content)
+                        if new_content != content:
+                            content = new_content
                             modified = True
 
                 if modified:
