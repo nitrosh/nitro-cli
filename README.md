@@ -104,12 +104,10 @@ config = Config(
 
 ## Ecosystem
 
-Nitro isn’t just one library - it's a growing toolkit of focused building blocks you can mix and match to ship faster:
-
-- **[nitro-ui](https://github.com/nitrosh/nitro-ui)** - Generate clean, reusable HTML with a lightweight, developer-friendly API
-- **[nitro-datastore](https://github.com/nitrosh/nitro-datastore)** - Load and access data effortlessly using simple dot-notation paths
-- **[nitro-dispatch](https://github.com/nitrosh/nitro-dispatch)** - A flexible plugin system to extend features without touching core code
-- **[nitro-validate](https://github.com/nitrosh/nitro-validate)** - Fast, reliable data validation to keep your inputs and payloads rock-solid
+- **[nitro-ui](https://github.com/nitrosh/nitro-ui)** - Programmatic HTML generation
+- **[nitro-cli](https://github.com/nitrosh/nitro-cli)** - Static site generator
+- **[nitro-dispatch](https://github.com/nitrosh/nitro-dispatch)** - Plugin system
+- **[nitro-validate](https://github.com/nitrosh/nitro-validate)** - Data validation
 
 ## License
 

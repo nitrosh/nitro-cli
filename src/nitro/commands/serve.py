@@ -71,7 +71,9 @@ async def serve_async(
     ):
         with spinner("Generating site...") as update:
             # Run blocking generation in thread pool to avoid blocking event loop
-            success_result = await asyncio.to_thread(generator.generate, verbose=False)
+            success_result = await asyncio.to_thread(
+                generator.generate, verbose=False, quiet=True
+            )
             if not success_result:
                 error_panel(
                     "Generation Failed",
@@ -122,7 +124,9 @@ async def serve_async(
                             should_notify = True
                 elif "components" in str(path):
                     hmr_update("site", "rebuilding...")
-                    if await asyncio.to_thread(generator.generate, verbose=False):
+                    if await asyncio.to_thread(
+                        generator.generate, verbose=False, quiet=True
+                    ):
                         should_notify = True
                 elif "styles" in str(path) or "public" in str(path):
                     hmr_update("assets", "rebuilding...")
@@ -131,11 +135,15 @@ async def serve_async(
                 elif path.name == "nitro.config.py":
                     hmr_update("config", "rebuilding...")
                     generator = Generator()
-                    if await asyncio.to_thread(generator.generate, verbose=False):
+                    if await asyncio.to_thread(
+                        generator.generate, verbose=False, quiet=True
+                    ):
                         should_notify = True
                 else:
                     hmr_update("site", "rebuilding...")
-                    if await asyncio.to_thread(generator.generate, verbose=False):
+                    if await asyncio.to_thread(
+                        generator.generate, verbose=False, quiet=True
+                    ):
                         should_notify = True
 
                 if should_notify:
