@@ -70,7 +70,11 @@ class Generator:
         return loader
 
     def generate(
-        self, verbose: bool = False, force: bool = False, parallel: bool = True
+        self,
+        verbose: bool = False,
+        force: bool = False,
+        parallel: bool = True,
+        quiet: bool = False,
     ) -> bool:
         """Generate the static site.
 
@@ -78,6 +82,7 @@ class Generator:
             verbose: Enable verbose output
             force: Force full rebuild, ignore cache
             parallel: Use parallel page generation (default: True)
+            quiet: Suppress progress output (for background thread execution)
 
         Returns:
             True if successful, False otherwise
@@ -158,103 +163,17 @@ class Generator:
         use_parallel = parallel and len(pages_to_build) > 1
         max_workers = min(os.cpu_count() or 4, len(pages_to_build), 8)
 
-        with Progress(
-            SpinnerColumn(),
-            TextColumn("[progress.description]{task.description}"),
-            BarColumn(),
-            MofNCompleteColumn(),
-            TimeElapsedColumn(),
-            transient=True,
-        ) as progress:
-            task = progress.add_task("Generating pages...", total=len(pages_to_build))
-
-            if use_parallel and len(pages_to_build) >= 4:
-                # Parallel generation
-                progress.update(
-                    task,
-                    description=f"Generating {len(pages_to_build)} pages ({max_workers} workers)",
-                )
-
-                with ThreadPoolExecutor(max_workers=max_workers) as executor:
-                    # Submit all page rendering tasks
-                    future_to_page = {
-                        executor.submit(
-                            self._render_single_page, page_path, verbose
-                        ): page_path
-                        for page_path in pages_to_build
-                    }
-
-                    # Process completed tasks
-                    for future in as_completed(future_to_page):
-                        page_path = future_to_page[future]
-                        try:
-                            result = future.result()
-                            if result:
-                                success_count += 1
-                                # Update cache for this page
-                                if self.cache:
-                                    self.cache.update_page_hash(page_path)
-                            else:
-                                failed_pages.append(page_path)
-                        except Exception as e:
-                            error(f"Error generating {page_path}: {e}")
-                            failed_pages.append(page_path)
-
-                        progress.update(task, advance=1)
-            else:
-                # Sequential generation (for small builds or when parallel is disabled)
-                for page_path in pages_to_build:
-                    # Update progress description with current file
-                    relative_path = page_path.relative_to(self.project_root)
-                    progress.update(task, description=str(relative_path))
-
-                    if verbose:
-                        console.print(f"  Processing: {relative_path}")
-
-                    html = self.renderer.render_page(page_path, self.project_root)
-
-                    if html:
-                        # Trigger post-generate hook to allow HTML modification
-                        hook_result = self.plugin_loader.trigger(
-                            "nitro.post_generate",
-                            {
-                                "page_path": str(page_path),
-                                "output": html,
-                                "config": self.config,
-                            },
-                        )
-
-                        # Use modified output if returned
-                        if (
-                            hook_result
-                            and isinstance(hook_result, dict)
-                            and "output" in hook_result
-                        ):
-                            html = hook_result["output"]
-
-                        output_path = self.renderer.get_output_path(
-                            page_path, self.source_dir, self.build_dir
-                        )
-
-                        # Ensure parent directory exists
-                        output_path.parent.mkdir(parents=True, exist_ok=True)
-
-                        # Write HTML file
-                        output_path.write_text(html)
-                        success_count += 1
-
-                        # Update cache for this page
-                        if self.cache:
-                            self.cache.update_page_hash(page_path)
-
-                        if verbose:
-                            console.print(
-                                f"    → {output_path.relative_to(self.project_root)}"
-                            )
-                    else:
-                        failed_pages.append(page_path)
-
-                    progress.update(task, advance=1)
+        # Generate pages - with or without progress display
+        if quiet:
+            # Quiet mode: no progress bar (for background thread execution)
+            success_count, failed_pages = self._generate_pages_quiet(
+                pages_to_build, use_parallel, max_workers, verbose
+            )
+        else:
+            # Normal mode: show progress bar
+            success_count, failed_pages = self._generate_pages_with_progress(
+                pages_to_build, use_parallel, max_workers, verbose
+            )
 
         # Show results for static pages
         if pages_to_build:
@@ -310,6 +229,184 @@ class Generator:
 
         success("Site generation complete!")
         return True
+
+    def _generate_pages_quiet(
+        self,
+        pages_to_build: List[Path],
+        use_parallel: bool,
+        max_workers: int,
+        verbose: bool,
+    ) -> tuple:
+        """Generate pages without progress display (for background threads).
+
+        Args:
+            pages_to_build: List of page paths to build
+            use_parallel: Whether to use parallel generation
+            max_workers: Max worker threads for parallel generation
+            verbose: Enable verbose output
+
+        Returns:
+            Tuple of (success_count, failed_pages)
+        """
+        success_count = 0
+        failed_pages = []
+
+        if use_parallel and len(pages_to_build) >= 4:
+            with ThreadPoolExecutor(max_workers=max_workers) as executor:
+                future_to_page = {
+                    executor.submit(
+                        self._render_single_page, page_path, verbose
+                    ): page_path
+                    for page_path in pages_to_build
+                }
+
+                for future in as_completed(future_to_page):
+                    page_path = future_to_page[future]
+                    try:
+                        result = future.result()
+                        if result:
+                            success_count += 1
+                            if self.cache:
+                                self.cache.update_page_hash(page_path)
+                        else:
+                            failed_pages.append(page_path)
+                    except Exception as e:
+                        error(f"Error generating {page_path}: {e}")
+                        failed_pages.append(page_path)
+        else:
+            for page_path in pages_to_build:
+                if self._render_page_sequential(page_path, verbose):
+                    success_count += 1
+                    if self.cache:
+                        self.cache.update_page_hash(page_path)
+                else:
+                    failed_pages.append(page_path)
+
+        return success_count, failed_pages
+
+    def _generate_pages_with_progress(
+        self,
+        pages_to_build: List[Path],
+        use_parallel: bool,
+        max_workers: int,
+        verbose: bool,
+    ) -> tuple:
+        """Generate pages with progress display.
+
+        Args:
+            pages_to_build: List of page paths to build
+            use_parallel: Whether to use parallel generation
+            max_workers: Max worker threads for parallel generation
+            verbose: Enable verbose output
+
+        Returns:
+            Tuple of (success_count, failed_pages)
+        """
+        success_count = 0
+        failed_pages = []
+
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            BarColumn(),
+            MofNCompleteColumn(),
+            TimeElapsedColumn(),
+            transient=True,
+        ) as progress:
+            task = progress.add_task("Generating pages...", total=len(pages_to_build))
+
+            if use_parallel and len(pages_to_build) >= 4:
+                progress.update(
+                    task,
+                    description=f"Generating {len(pages_to_build)} pages ({max_workers} workers)",
+                )
+
+                with ThreadPoolExecutor(max_workers=max_workers) as executor:
+                    future_to_page = {
+                        executor.submit(
+                            self._render_single_page, page_path, verbose
+                        ): page_path
+                        for page_path in pages_to_build
+                    }
+
+                    for future in as_completed(future_to_page):
+                        page_path = future_to_page[future]
+                        try:
+                            result = future.result()
+                            if result:
+                                success_count += 1
+                                if self.cache:
+                                    self.cache.update_page_hash(page_path)
+                            else:
+                                failed_pages.append(page_path)
+                        except Exception as e:
+                            error(f"Error generating {page_path}: {e}")
+                            failed_pages.append(page_path)
+
+                        progress.update(task, advance=1)
+            else:
+                for page_path in pages_to_build:
+                    relative_path = page_path.relative_to(self.project_root)
+                    progress.update(task, description=str(relative_path))
+
+                    if verbose:
+                        console.print(f"  Processing: {relative_path}")
+
+                    if self._render_page_sequential(page_path, verbose):
+                        success_count += 1
+                        if self.cache:
+                            self.cache.update_page_hash(page_path)
+                    else:
+                        failed_pages.append(page_path)
+
+                    progress.update(task, advance=1)
+
+        return success_count, failed_pages
+
+    def _render_page_sequential(self, page_path: Path, verbose: bool = False) -> bool:
+        """Render a single page sequentially (with hooks and output).
+
+        Args:
+            page_path: Path to page file
+            verbose: Enable verbose output
+
+        Returns:
+            True if successful, False otherwise
+        """
+        html = self.renderer.render_page(page_path, self.project_root)
+
+        if html:
+            hook_result = self.plugin_loader.trigger(
+                "nitro.post_generate",
+                {
+                    "page_path": str(page_path),
+                    "output": html,
+                    "config": self.config,
+                },
+            )
+
+            if (
+                hook_result
+                and isinstance(hook_result, dict)
+                and "output" in hook_result
+            ):
+                html = hook_result["output"]
+
+            output_path = self.renderer.get_output_path(
+                page_path, self.source_dir, self.build_dir
+            )
+
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            output_path.write_text(html)
+
+            if verbose:
+                console.print(
+                    f"    → {output_path.relative_to(self.project_root)}"
+                )
+
+            return True
+
+        return False
 
     def _find_pages(self) -> List[Path]:
         """Find all page files.
