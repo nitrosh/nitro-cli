@@ -315,3 +315,154 @@ class TestGenerateNoPages:
             result = generator.generate(verbose=False, quiet=True)
 
             assert result is False
+
+
+class TestErrorHandlingInQuietMode:
+    """Tests for error handling during generation in quiet mode."""
+
+    def test_syntax_error_handled_gracefully_in_thread(self):
+        """Syntax errors should not crash when running in a background thread."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            project_root = Path(tmpdir)
+            pages_dir = project_root / "src" / "pages"
+            pages_dir.mkdir(parents=True)
+
+            # Create a page with syntax error
+            page_file = pages_dir / "broken.py"
+            page_file.write_text("def render( broken syntax")
+
+            (project_root / "nitro.config.py").write_text(
+                "from nitro import Config\nconfig = Config()"
+            )
+
+            generator = Generator(project_root=project_root, use_cache=False)
+
+            # Run in background thread (like HMR does)
+            result_holder = {"result": None, "error": None}
+
+            def run_generate():
+                try:
+                    result_holder["result"] = generator.generate(
+                        verbose=False, quiet=True
+                    )
+                except Exception as e:
+                    result_holder["error"] = e
+
+            thread = threading.Thread(target=run_generate)
+            thread.start()
+            thread.join(timeout=10)
+
+            # Should not crash, should return True (generation completes but page fails)
+            assert result_holder["error"] is None, f"Unexpected error: {result_holder['error']}"
+            # Result is True because generation completes, even if page failed
+            assert result_holder["result"] is True
+
+    def test_name_error_handled_gracefully_in_thread(self):
+        """NameError should not crash when running in a background thread."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            project_root = Path(tmpdir)
+            pages_dir = project_root / "src" / "pages"
+            pages_dir.mkdir(parents=True)
+
+            # Create a page with NameError
+            page_file = pages_dir / "name_error.py"
+            page_file.write_text(
+                """
+from nitro.core.page import Page
+
+def render():
+    return Page(title="Test", content=undefined_variable)
+"""
+            )
+
+            (project_root / "nitro.config.py").write_text(
+                "from nitro import Config\nconfig = Config()"
+            )
+
+            generator = Generator(project_root=project_root, use_cache=False)
+
+            # Run in ThreadPoolExecutor (like asyncio.to_thread does)
+            with ThreadPoolExecutor(max_workers=1) as executor:
+                future = executor.submit(generator.generate, verbose=False, quiet=True)
+                result = future.result(timeout=10)
+
+            # Should complete without raising
+            assert result is True  # Generation completes, page is marked as failed
+
+    def test_import_error_handled_gracefully_in_thread(self):
+        """ImportError should not crash when running in a background thread."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            project_root = Path(tmpdir)
+            pages_dir = project_root / "src" / "pages"
+            pages_dir.mkdir(parents=True)
+
+            # Create a page with ImportError
+            page_file = pages_dir / "import_error.py"
+            page_file.write_text(
+                """
+from nonexistent_module import something
+
+def render():
+    return something()
+"""
+            )
+
+            (project_root / "nitro.config.py").write_text(
+                "from nitro import Config\nconfig = Config()"
+            )
+
+            generator = Generator(project_root=project_root, use_cache=False)
+
+            result_holder = {"result": None, "error": None}
+
+            def run_generate():
+                try:
+                    result_holder["result"] = generator.generate(
+                        verbose=False, quiet=True
+                    )
+                except Exception as e:
+                    result_holder["error"] = e
+
+            thread = threading.Thread(target=run_generate)
+            thread.start()
+            thread.join(timeout=10)
+
+            assert result_holder["error"] is None
+            assert result_holder["result"] is True
+
+    def test_mixed_valid_and_invalid_pages_in_thread(self):
+        """Should handle mix of valid and invalid pages without crashing."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            project_root = Path(tmpdir)
+            pages_dir = project_root / "src" / "pages"
+            pages_dir.mkdir(parents=True)
+
+            # Create valid page
+            valid_page = pages_dir / "valid.py"
+            valid_page.write_text(
+                """
+from nitro.core.page import Page
+
+def render():
+    return Page(title="Valid", content="<h1>Works</h1>")
+"""
+            )
+
+            # Create invalid page
+            invalid_page = pages_dir / "invalid.py"
+            invalid_page.write_text("def render( broken")
+
+            (project_root / "nitro.config.py").write_text(
+                "from nitro import Config\nconfig = Config()"
+            )
+
+            generator = Generator(project_root=project_root, use_cache=False)
+
+            with ThreadPoolExecutor(max_workers=1) as executor:
+                future = executor.submit(generator.generate, verbose=False, quiet=True)
+                result = future.result(timeout=10)
+
+            # Should complete
+            assert result is True
+            # Valid page should be generated
+            assert (project_root / "build" / "valid.html").exists()

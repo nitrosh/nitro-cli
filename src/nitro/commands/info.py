@@ -138,29 +138,30 @@ def _show_directory_stats(project_root: Path, config):
 
 def _show_dependencies():
     """Show installed Nitro ecosystem dependencies."""
+    from importlib.metadata import version as pkg_version, PackageNotFoundError
+
     deps_table = Table(box=ROUNDED, show_header=True, padding=(0, 2), expand=False)
     deps_table.add_column("Package", style="dim")
     deps_table.add_column("Version", style="cyan")
     deps_table.add_column("Status", style="green")
 
     packages = [
-        ("nitro-ui", "nitro_ui"),
-        ("nitro-datastore", "nitro_datastore"),
-        ("nitro-dispatch", "nitro_dispatch"),
-        ("click", "click"),
-        ("rich", "rich"),
-        ("watchdog", "watchdog"),
-        ("aiohttp", "aiohttp"),
-        ("pillow", "PIL"),
+        "nitro-ui",
+        "nitro-datastore",
+        "nitro-dispatch",
+        "click",
+        "rich",
+        "watchdog",
+        "aiohttp",
+        "pillow",
     ]
 
-    for display_name, import_name in packages:
+    for package_name in packages:
         try:
-            module = __import__(import_name)
-            version = getattr(module, "__version__", "installed")
-            deps_table.add_row(display_name, str(version), "✓")
-        except ImportError:
-            deps_table.add_row(display_name, "-", "[red]✗ missing[/]")
+            version = pkg_version(package_name)
+            deps_table.add_row(package_name, version, "✓")
+        except PackageNotFoundError:
+            deps_table.add_row(package_name, "-", "[red]✗ missing[/]")
 
     console.print(
         Panel(deps_table, title=Text.from_markup("[bold]Dependencies[/]"), border_style="magenta")
