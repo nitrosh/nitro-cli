@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "nitro-cli"
-version = "1.0.5"
+version = "1.0.6"
 description = "Build static sites with Python code instead of templates"
 authors = [
     {name = "Sean Nieuwoudt", email = "sean@nitro.sh"}
@@ -49,13 +49,13 @@ dependencies = [
     "nitro-ui>=1.0.4",
     "nitro-datastore>=1.0.2",
     "nitro-dispatch>=1.0.0",
+    "beautifulsoup4>=4.12.0",
 ]
 
 [project.optional-dependencies]
 dev = [
     "pytest>=8.0.0",
     "html5lib>=1.1",
-    "beautifulsoup4>=4.12.0",
     "black>=24.0.0",
     "flake8>=7.0.0",
 ]

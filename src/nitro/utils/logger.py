@@ -148,6 +148,9 @@ def spinner(message: str) -> Generator[Callable[[str], None], None, None]:
     Yields a function to update the spinner message.
     The spinner disappears when the context exits.
 
+    Falls back to simple text output if Rich rendering fails
+    (e.g., Rich 14.x Segment rendering issues).
+
     Usage:
         with spinner("Processing...") as update:
             update("Step 1...")
@@ -155,14 +158,19 @@ def spinner(message: str) -> Generator[Callable[[str], None], None, None]:
             update("Step 2...")
             do_step_2()
     """
-    with Progress(
-        SpinnerColumn(),
-        TextColumn("[progress.description]{task.description}"),
-        console=console,
-        transient=True,
-    ) as progress:
-        task = progress.add_task(message, total=None)
-        yield lambda msg: progress.update(task, description=msg)
+    try:
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            console=console,
+            transient=True,
+        ) as progress:
+            task = progress.add_task(message, total=None)
+            yield lambda msg: progress.update(task, description=msg)
+    except Exception:
+        # Fallback when Rich Progress cannot render (e.g., Rich 14.x compatibility)
+        info(message)
+        yield lambda msg: info(msg)
 
 
 def server_ready(host: str, port: int, live_reload: bool = True) -> None:

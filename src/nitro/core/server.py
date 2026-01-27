@@ -8,7 +8,7 @@ from typing import Set, Optional
 import aiofiles
 from aiohttp import web, WSMsgType
 
-from ..utils import success, info, error, warning, console
+from ..utils import success, info, error, warning, verbose, debug, console
 
 
 class LiveReloadServer:
@@ -37,10 +37,12 @@ class LiveReloadServer:
         resp = await handler(request)
         if not request.path.startswith("/__nitro__"):
             status = resp.status
-            style = "dim" if 200 <= status < 400 else "red"
-            console.print(
-                f"  [{style}]{request.method} {request.path} {status}[/{style}]"
-            )
+            if status >= 400:
+                console.print(
+                    f"  [red]{request.method} {request.path} {status}[/red]"
+                )
+            else:
+                debug(f"{request.method} {request.path} {status}")
         return resp
 
     def _setup_routes(self) -> None:
@@ -117,7 +119,7 @@ class LiveReloadServer:
         await ws.prepare(request)
 
         self.websockets.add(ws)
-        info(f"Client connected (total: {len(self.websockets)})")
+        debug(f"Client connected (total: {len(self.websockets)})")
 
         try:
             async for msg in ws:
@@ -127,7 +129,7 @@ class LiveReloadServer:
             self.websockets.discard(ws)
             if not ws.closed:
                 await ws.close()
-            info(f"Client disconnected (total: {len(self.websockets)})")
+            debug(f"Client disconnected (total: {len(self.websockets)})")
 
         return ws
 
@@ -186,7 +188,7 @@ class LiveReloadServer:
         self.websockets -= dead_sockets
 
         if self.websockets:
-            info(f"Sent reload notification to {len(self.websockets)} client(s)")
+            debug(f"Sent reload notification to {len(self.websockets)} client(s)")
 
     async def start(self) -> None:
         """Start the server."""

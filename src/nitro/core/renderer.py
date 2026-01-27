@@ -360,9 +360,12 @@ class Renderer:
                 soup = BeautifulSoup(html, "html.parser")
                 html = soup.prettify()
             except ImportError:
-                pass
+                warning("beautifulsoup4 not installed, skipping pretty print (pip install beautifulsoup4)")
 
         return html
+
+    # Directories to exclude from module invalidation (virtual envs, installed packages)
+    _EXCLUDE_DIRS = {".venv", "venv", "site-packages", "dist-packages", ".tox", ".nox", ".eggs"}
 
     def _invalidate_project_modules(self, project_root: Path) -> None:
         """Remove cached modules from project directory to ensure fresh imports."""
@@ -374,6 +377,10 @@ class Renderer:
                 continue
             module_file = getattr(module, "__file__", None)
             if module_file and project_str in module_file:
+                # Skip modules inside virtual environments or installed packages
+                parts = Path(module_file).parts
+                if any(excluded in parts for excluded in self._EXCLUDE_DIRS):
+                    continue
                 modules_to_remove.append(name)
 
         for name in modules_to_remove:
