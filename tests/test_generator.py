@@ -131,7 +131,9 @@ config = Config()
             thread.start()
             thread.join(timeout=10)
 
-            assert result_holder["error"] is None, f"Error in thread: {result_holder['error']}"
+            assert (
+                result_holder["error"] is None
+            ), f"Error in thread: {result_holder['error']}"
             assert result_holder["result"] is True
 
     def test_generate_quiet_in_thread_pool(self):
@@ -353,7 +355,9 @@ class TestErrorHandlingInQuietMode:
             thread.join(timeout=10)
 
             # Should not crash, should return True (generation completes but page fails)
-            assert result_holder["error"] is None, f"Unexpected error: {result_holder['error']}"
+            assert (
+                result_holder["error"] is None
+            ), f"Unexpected error: {result_holder['error']}"
             # Result is True because generation completes, even if page failed
             assert result_holder["result"] is True
 

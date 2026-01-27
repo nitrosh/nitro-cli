@@ -400,9 +400,7 @@ class Generator:
             output_path.write_text(html)
 
             if verbose:
-                console.print(
-                    f"    → {output_path.relative_to(self.project_root)}"
-                )
+                console.print(f"    → {output_path.relative_to(self.project_root)}")
 
             return True
 

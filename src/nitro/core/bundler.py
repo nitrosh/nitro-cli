@@ -226,7 +226,11 @@ Sitemap: {sitemap_url}
                     for path_variant in [old_path, old_filename]:
                         # Pattern matches: href="path", href='path', href=/path, href=path
                         # Captures the attribute name (href or src) and replaces with quoted new path
-                        pattern = r'((?:href|src)=)["\']?(/?' + re.escape(path_variant) + r')["\']?(?=[\s>])'
+                        pattern = (
+                            r'((?:href|src)=)["\']?(/?'
+                            + re.escape(path_variant)
+                            + r')["\']?(?=[\s>])'
+                        )
                         replacement = r'\1"/' + new_path + '"'
                         new_content = re.sub(pattern, replacement, content)
                         if new_content != content:

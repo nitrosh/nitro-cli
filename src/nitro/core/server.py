@@ -8,7 +8,7 @@ from typing import Set, Optional
 import aiofiles
 from aiohttp import web, WSMsgType
 
-from ..utils import success, info, error, warning
+from ..utils import success, info, error, warning, console
 
 
 class LiveReloadServer:
@@ -25,11 +25,23 @@ class LiveReloadServer:
         self.host = host
         self.port = port
         self.enable_reload = enable_reload
-        self.app = web.Application()
+        self.app = web.Application(middlewares=[self._access_log_middleware])
         self.websockets: Set[web.WebSocketResponse] = set()
         self.runner: Optional[web.AppRunner] = None
         self._setup_routes()
         mimetypes.init()
+
+    @web.middleware
+    async def _access_log_middleware(self, request, handler):
+        """Log requests in a clean, minimal format."""
+        resp = await handler(request)
+        if not request.path.startswith("/__nitro__"):
+            status = resp.status
+            style = "dim" if 200 <= status < 400 else "red"
+            console.print(
+                f"  [{style}]{request.method} {request.path} {status}[/{style}]"
+            )
+        return resp
 
     def _setup_routes(self) -> None:
         self.app.router.add_get("/", self.handle_index)
@@ -178,7 +190,7 @@ class LiveReloadServer:
 
     async def start(self) -> None:
         """Start the server."""
-        self.runner = web.AppRunner(self.app)
+        self.runner = web.AppRunner(self.app, access_log=None)
         await self.runner.setup()
 
         site = web.TCPSite(self.runner, self.host, self.port)
