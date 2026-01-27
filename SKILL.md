@@ -47,10 +47,14 @@ nitro build                  # Full build with all optimizations
 nitro build --no-minify      # Skip HTML/CSS minification
 nitro build --no-optimize    # Skip image optimization
 nitro build --no-fingerprint # Skip cache-busting hashes
+nitro build --no-responsive  # Skip responsive image generation
+nitro build --no-islands     # Skip island processing
 nitro build --clean          # Clean build dir first
+nitro build --force          # Force full rebuild (ignore cache)
 nitro build --output dist    # Custom output directory
 nitro build --quiet          # Minimal output
 nitro build --verbose        # Detailed output
+nitro build --debug          # Full tracebacks
 ```
 
 ### `nitro preview`
@@ -59,6 +63,7 @@ Preview production build locally.
 ```bash
 nitro preview                # Default: localhost:4000
 nitro preview --port 5000    # Custom port
+nitro preview --host 0.0.0.0 # Expose to network
 nitro preview --open         # Open browser
 ```
 
@@ -67,6 +72,7 @@ Remove build artifacts.
 
 ```bash
 nitro clean           # Clean build + cache
+nitro clean --all     # Clean everything
 nitro clean --build   # Clean only build directory
 nitro clean --cache   # Clean only cache
 nitro clean --dry-run # Show what would be deleted
@@ -540,9 +546,9 @@ def Layout(page_title, children, description=None):
             link(rel="stylesheet", href="/assets/styles/main.css"),
         ),
         body(
-            header(/* nav content */),
+            header(),  # nav content
             main(*children if isinstance(children, (list, tuple)) else [children]),
-            footer(/* footer content */),
+            footer(),  # footer content
         ),
     )
 ```
@@ -582,7 +588,7 @@ def render():
 
     return html(
         head(title("Page"), analytics),
-        body(/* content */),
+        body(h1("Page content")),
     )
 ```
 
@@ -612,10 +618,10 @@ nitro dev --verbose   # Detailed logging
 
 ## Dependencies
 
-- **nitro-ui** >= 1.0.3 - HTML element builder
-- **nitro-datastore** >= 1.0.0 - Data loading with dot notation
+- **nitro-ui** >= 1.0.4 - HTML element builder
+- **nitro-datastore** >= 1.0.2 - Data loading with dot notation
 - **nitro-dispatch** >= 1.0.0 - Plugin system hooks
 
 ## Version
 
-Current: nitro-cli 1.0.0
+Current: nitro-cli 1.0.5
