@@ -42,7 +42,9 @@ class LiveReloadServer:
                     f"  [red]{request.method} {request.path} {status}[/red]"
                 )
             else:
-                debug(f"{request.method} {request.path} {status}")
+                console.print(
+                    f"  [dim]{request.method} {request.path} {status}[/dim]"
+                )
         return resp
 
     def _setup_routes(self) -> None:
