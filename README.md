@@ -6,11 +6,12 @@ A static site generator that lets you build websites using Python and [nitro-ui]
 
 - **Python-Powered** - Write pages in Python with nitro-ui instead of template languages
 - **Live Reload** - Development server with automatic browser refresh
-- **Incremental Builds** – Only rebuild changed pages
-- **Dynamic Routes** – Generate pages from data with `[slug].py` pattern
-- **Image Optimization** – Responsive images with WebP/AVIF conversion
+- **Incremental Builds** - Only rebuild changed pages
+- **Dynamic Routes** - Generate pages from data with `[slug].py` pattern
+- **Image Optimization** - Responsive images with WebP/AVIF conversion
 - **Islands Architecture** - Partial hydration for interactive components
-- **One-Click Deploy** – Netlify, Vercel, or Cloudflare Pages
+- **Plugin System** - Extend the build lifecycle with nitro-dispatch hooks
+- **One-Click Deploy** - Netlify, Vercel, or Cloudflare Pages
 
 ## Installation
 
@@ -44,15 +45,19 @@ Pages are Python files in `src/pages/` that export a `render()` function:
 
 ```python
 # src/pages/index.py
-from nitro_ui import HTML, Head, Body, H1, Title
+from nitro_ui.html import html, head, body, title, meta, h1
 from nitro import Page
 
 def render():
     return Page(
         title="Home",
-        content=HTML(
-            Head(Title("Home")),
-            Body(H1("Welcome!"))
+        content=html(
+            head(
+                meta(charset="UTF-8"),
+                meta(name="viewport", content="width=device-width, initial-scale=1.0"),
+                title("Home"),
+            ),
+            body(h1("Welcome!"))
         )
     )
 ```
@@ -70,7 +75,7 @@ from nitro_datastore import NitroDataStore
 
 def get_paths():
     data = NitroDataStore.from_file("src/data/posts.json")
-    return [{"slug": p["slug"], "title": p["title"]} for p in data.posts]
+    return [{"slug": p.slug, "title": p.title} for p in data.posts]
 
 def render(slug, title):
     return Page(title=title, content=...)
@@ -86,6 +91,7 @@ def render(slug, title):
 | `nitro preview`    | Preview production build          |
 | `nitro clean`      | Remove build artifacts            |
 | `nitro deploy`     | Deploy to hosting platform        |
+| `nitro info`       | Show project and environment info |
 
 Run `nitro <command> --help` for options.
 
@@ -98,14 +104,15 @@ from nitro import Config
 config = Config(
     site_name="My Site",
     base_url="https://mysite.com",
-    renderer={"minify_html": True}
+    renderer={"minify_html": True},
+    plugins=[],
 )
 ```
 
 ## Ecosystem
 
 - **[nitro-ui](https://github.com/nitrosh/nitro-ui)** - Programmatic HTML generation
-- **[nitro-cli](https://github.com/nitrosh/nitro-cli)** - Static site generator
+- **[nitro-datastore](https://github.com/nitrosh/nitro-datastore)** - Data loading with dot notation access
 - **[nitro-dispatch](https://github.com/nitrosh/nitro-dispatch)** - Plugin system
 - **[nitro-validate](https://github.com/nitrosh/nitro-validate)** - Data validation
 

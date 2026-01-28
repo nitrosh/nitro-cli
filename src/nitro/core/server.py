@@ -81,6 +81,9 @@ class LiveReloadServer:
             if resolved_path.suffix == ".html":
                 alt_path = build_dir_resolved / path.replace(".html", "")
                 alt_resolved = await asyncio.to_thread(alt_path.resolve)
+                if not alt_resolved.is_relative_to(build_dir_resolved):
+                    warning(f"Path traversal attempt blocked: {path}")
+                    return web.Response(text="Forbidden", status=403)
                 if await asyncio.to_thread(alt_resolved.exists):
                     resolved_path = alt_resolved
                 else:

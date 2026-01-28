@@ -47,7 +47,7 @@ def deploy(platform, build, prod, verbose):
                 build_cmd, minify=True, optimize=True, fingerprint=True, quiet=True
             )
         except SystemExit as e:
-            if e.code != 0:
+            if e.code not in (0, None):
                 error("Build failed, aborting deployment")
                 sys.exit(1)
 

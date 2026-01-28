@@ -9,7 +9,7 @@ This document contains everything needed to build static sites with Nitro CLI.
 
 ## Overview
 
-Nitro CLI is a Python-based static site generator. Pages are written in Python using nitro-ui for HTML generation. The CLI provides scaffolding, a development server with live reload, and optimized production builds.
+Nitro CLI is a Python-based static site generator. Pages are written in Python using nitro-ui for HTML generation. The CLI provides scaffolding, a development server with live reload, and optimized production builds. It includes an islands architecture for partial hydration, responsive image optimization, build caching for incremental builds, and a plugin system.
 
 ## Installation
 
@@ -17,7 +17,26 @@ Nitro CLI is a Python-based static site generator. Pages are written in Python u
 pip install nitro-cli
 ```
 
+## Public API
+
+All public classes are importable from the top-level `nitro` package:
+
+```python
+from nitro import (
+    Config,            # Project configuration
+    Page,              # Page object returned by render()
+    ImageConfig,       # Image optimization settings
+    ImageOptimizer,    # Image optimization engine
+    OptimizedImage,    # Result of optimizing an image
+    Island,            # Interactive island component
+    IslandConfig,      # Island system configuration
+    IslandProcessor,   # HTML processor for island hydration
+)
+```
+
 ## CLI Commands
+
+All commands support `--verbose` / `-v` for detailed output and `--debug` for full tracebacks.
 
 ### `nitro new <name>`
 Create a new project.
@@ -48,7 +67,7 @@ nitro build --no-minify      # Skip HTML/CSS minification
 nitro build --no-optimize    # Skip image optimization
 nitro build --no-fingerprint # Skip cache-busting hashes
 nitro build --no-responsive  # Skip responsive image generation
-nitro build --no-islands     # Skip island processing
+nitro build --no-islands     # Skip island hydration processing
 nitro build --clean          # Clean build dir first
 nitro build --force          # Force full rebuild (ignore cache)
 nitro build --output dist    # Custom output directory
@@ -56,6 +75,8 @@ nitro build --quiet          # Minimal output
 nitro build --verbose        # Detailed output
 nitro build --debug          # Full tracebacks
 ```
+
+Build uses an incremental cache (stored in `.nitro/cache.json`) to skip unchanged pages. Use `--force` to bypass the cache.
 
 ### `nitro preview`
 Preview production build locally.
@@ -68,18 +89,18 @@ nitro preview --open         # Open browser
 ```
 
 ### `nitro clean`
-Remove build artifacts.
+Remove build artifacts. Defaults to cleaning everything when no flags are specified.
 
 ```bash
-nitro clean           # Clean build + cache
+nitro clean           # Clean build + cache (same as --all)
 nitro clean --all     # Clean everything
 nitro clean --build   # Clean only build directory
-nitro clean --cache   # Clean only cache
+nitro clean --cache   # Clean only .nitro/ cache
 nitro clean --dry-run # Show what would be deleted
 ```
 
 ### `nitro deploy`
-Deploy to hosting platforms.
+Deploy to hosting platforms. Auto-detects platform by checking for config files (`netlify.toml`, `vercel.json`, `wrangler.toml`) and installed CLIs.
 
 ```bash
 nitro deploy                      # Auto-detect platform
@@ -91,7 +112,7 @@ nitro deploy --no-build           # Skip build step
 ```
 
 ### `nitro info`
-Show project and environment information.
+Show project and environment information (Nitro version, Python version, platform, directory stats, dependency status).
 
 ```bash
 nitro info
@@ -112,10 +133,16 @@ my-site/
 │   ├── components/      # Reusable components
 │   ├── styles/          # CSS files
 │   │   └── main.css     # → /assets/styles/main.css
+│   ├── public/          # Files copied to build root (like static/)
+│   ├── plugins/         # Local plugins (auto-discovered)
 │   └── data/            # JSON/YAML data files
-├── static/              # Static assets (copied as-is)
+├── static/              # Static assets (copied as-is to build root)
+├── .nitro/              # Build cache (gitignored)
+│   └── cache.json       # Incremental build hashes
 └── build/               # Generated output (gitignored)
 ```
+
+Both `static/` and `src/public/` are copied to the build root. `src/styles/` is copied to `build/assets/styles/`.
 
 ## Configuration
 
@@ -127,15 +154,17 @@ from nitro import Config
 config = Config(
     site_name="My Site",
     base_url="https://mysite.com",
-    build_dir="build",       # Output directory
-    source_dir="src",        # Source directory
+    build_dir="build",       # Output directory (default: "build")
+    source_dir="src",        # Source directory (default: "src")
     renderer={
-        "pretty_print": False,  # Format HTML output
+        "pretty_print": True,   # Format HTML output (default: False)
         "minify_html": False,   # Minify in dev (always minified in build)
     },
-    plugins=[],              # Plugin list
+    plugins=[],              # Plugin names list (installed packages or src/plugins/ files)
 )
 ```
+
+The `config` variable must be a `Config` instance. The file is loaded dynamically via `load_config()`.
 
 ## Writing Pages
 
@@ -176,7 +205,7 @@ from nitro import Page
 Page(
     title="Page Title",           # Required: page title
     content=html_element,         # Required: nitro-ui element
-    meta={"key": "value"},        # Optional: meta tags
+    meta={"key": "value"},        # Optional: meta tags dict (arbitrary keys)
     template="layout",            # Optional: template name
 )
 ```
@@ -228,6 +257,16 @@ from nitro_ui.html import (
 )
 ```
 
+### Attribute Naming
+
+Python reserved words are suffixed with `_`:
+
+- `class_name="container"` → renders as `class="container"`
+- `for_="email"` → renders as `for="email"`
+- `input_()` → renders as `<input>` (function name avoids shadowing `input()` builtin)
+
+All other HTML attributes use their standard names as keyword arguments.
+
 ### Element Usage
 
 ```python
@@ -252,6 +291,9 @@ p("Visit ", a("our site", href="/"), " for more.")
 # Self-closing
 img(src="/logo.png", alt="Logo")
 meta(charset="UTF-8")
+
+# Boolean attributes
+input_(type="email", required=True)
 ```
 
 ### Common Patterns
@@ -417,6 +459,251 @@ Example data file:
 }
 ```
 
+## Islands (Partial Hydration)
+
+Islands allow interactive components to be hydrated on the client while the rest of the page remains static HTML. This is useful for adding interactivity to specific parts of a page without shipping JavaScript for the entire page.
+
+### Hydration Strategies
+
+| Strategy      | Behavior                                                    |
+|---------------|-------------------------------------------------------------|
+| `load`        | Hydrate immediately when page loads                         |
+| `idle`        | Hydrate when browser is idle (`requestIdleCallback`)        |
+| `visible`     | Hydrate when component scrolls into view (`IntersectionObserver`) |
+| `media`       | Hydrate when a CSS media query matches                      |
+| `interaction` | Hydrate on first user interaction (click, focus, touchstart, mouseenter) |
+| `none`        | No client-side hydration (server-render only)               |
+
+Default strategy is `idle`.
+
+### Creating an Island
+
+```python
+from nitro import Island
+from nitro_ui.html import div, button
+
+def Counter(count=0):
+    """A component that will be hydrated on the client."""
+    return div(
+        button("-"),
+        span(str(count)),
+        button("+"),
+        class_name="counter"
+    )
+
+# Create an island with a hydration strategy
+island = Island(
+    name="counter",              # Component name (used for registration)
+    component=Counter,           # The component function
+    props={"count": 0},          # Props passed to the component
+    client="visible",            # Hydration strategy (default: "idle")
+    client_only=False,           # If True, skip server-side rendering
+    media=None,                  # Media query string (only for "media" strategy)
+)
+
+# Use in a page - renders as HTML with data-* hydration attributes
+def render():
+    return html(
+        body(
+            h1("My Page"),
+            island,  # Island renders to HTML via str() or .render()
+        )
+    )
+```
+
+### Island Output HTML
+
+An island renders a `<div>` with hydration marker attributes:
+
+```html
+<div data-island="counter" data-island-id="counter-a1b2c3d4" data-hydrate="visible" data-props="...">
+  <!-- Server-rendered component HTML -->
+</div>
+```
+
+### Client-Side Component Registration
+
+Register JavaScript components for hydration in a `<script>` tag:
+
+```javascript
+// Register a component for hydration
+window.__registerIsland("counter", function(props) {
+    // Return a string, or an object with mount() or render() method
+    return "<div>Interactive counter: " + props.count + "</div>";
+});
+```
+
+### Island Configuration
+
+```python
+from nitro import IslandConfig
+
+config = IslandConfig(
+    output_dir="_islands",     # Output directory for island scripts (relative to build)
+    default_strategy="idle",   # Default hydration strategy
+    debug=False,               # Enable debug logging in browser console
+)
+```
+
+### Build Integration
+
+Islands are processed during `nitro build` by default. The `IslandProcessor` scans HTML for `data-island` attributes and injects the hydration runtime script before `</body>`. Disable with `nitro build --no-islands`.
+
+## Image Optimization
+
+The image optimization pipeline generates responsive images with multiple sizes and formats (AVIF, WebP) during production builds.
+
+### ImageConfig
+
+```python
+from nitro import ImageConfig
+
+config = ImageConfig(
+    sizes=[320, 640, 768, 1024, 1280, 1920],  # Responsive breakpoints (widths in px)
+    formats=["avif", "webp", "original"],      # Output formats in preference order
+    quality={                                   # Quality per format (0-100)
+        "avif": 80,
+        "webp": 85,
+        "jpeg": 85,
+        "png": 85,
+    },
+    lazy_load=True,                            # Add loading="lazy" to img tags
+    default_sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw",
+    output_dir="_images",                      # Output dir (relative to build)
+    min_size=1024,                             # Skip images smaller than this (bytes)
+    max_width=2560,                            # Maximum dimension to generate
+)
+```
+
+### Using ImageOptimizer
+
+```python
+from nitro import ImageOptimizer, ImageConfig
+from pathlib import Path
+
+optimizer = ImageOptimizer(config=ImageConfig())
+
+# Optimize a single image (returns OptimizedImage or None)
+optimized = optimizer.optimize_image(
+    source_path=Path("static/images/hero.jpg"),
+    output_dir=Path("build"),
+    base_url="",
+)
+
+if optimized:
+    # Generate a <picture> element with all format variants
+    html = optimizer.generate_picture_element(
+        optimized,
+        alt="Hero image",
+        css_class="hero-img",
+        sizes="(max-width: 768px) 100vw, 50vw",  # Optional, uses default_sizes if None
+    )
+
+# Process an entire HTML string - replaces <img> tags with <picture> elements
+processed_html = optimizer.process_html(
+    html_content=html_string,
+    source_dir=Path("static"),
+    output_dir=Path("build"),
+    base_url="",
+)
+```
+
+### OptimizedImage
+
+```python
+optimized.original_path    # Path to source image
+optimized.original_width   # Original width in pixels
+optimized.original_height  # Original height in pixels
+optimized.variants         # Dict[format, Dict[width, Path]] - all generated variants
+optimized.hash             # Content hash of source image
+
+# Generate srcset string for a format
+srcset = optimized.get_srcset("webp")  # "/_images/hero-320w-abc123.webp 320w, ..."
+
+# Get single src path
+src = optimized.get_src("webp", width=640)  # Specific width, or largest if None
+```
+
+### Build Behavior
+
+During `nitro build`, the optimizer:
+- Skips external images (http/https), data URLs, and already-optimized images
+- Skips images smaller than `min_size` bytes
+- Only processes `.jpg`, `.jpeg`, `.png`, `.gif` files
+- Generates variants at each breakpoint that doesn't exceed the original width
+- Caches results to avoid re-processing unchanged images
+- Requires Pillow (`pip install Pillow`); AVIF support depends on Pillow build
+
+Enable/disable with `nitro build --responsive` / `--no-responsive`.
+
+## Plugins
+
+Nitro uses nitro-dispatch for its plugin system. Plugins hook into the build lifecycle.
+
+### Available Hooks
+
+| Hook                  | When                                | Data                    |
+|-----------------------|-------------------------------------|-------------------------|
+| `nitro.init`          | Plugin is loaded                    | -                       |
+| `nitro.pre_generate`  | Before HTML generation              | -                       |
+| `nitro.post_generate` | After HTML generation (can modify)  | `{"output": html_str}`  |
+| `nitro.pre_build`     | Before production build starts      | -                       |
+| `nitro.post_build`    | After production build completes    | -                       |
+| `nitro.process_data`  | When processing data files          | -                       |
+| `nitro.add_commands`  | When registering CLI commands       | -                       |
+
+### Creating a Plugin
+
+```python
+# src/plugins/analytics.py (or an installed package)
+from nitro.plugins import NitroPlugin, hook
+
+class Plugin(NitroPlugin):
+    name = "analytics"
+    version = "1.0.0"
+    description = "Injects analytics script"
+    author = "Your Name"
+    dependencies = []  # List of required plugin names
+
+    def on_load(self):
+        """Called when plugin is loaded."""
+        pass
+
+    def on_unload(self):
+        """Called when plugin is unloaded."""
+        pass
+
+    def on_error(self, error):
+        """Called when an error occurs in the plugin."""
+        pass
+
+    @hook('nitro.post_generate', priority=50)
+    def add_analytics(self, data):
+        """Modify HTML output after generation."""
+        html = data.get('output', '')
+        data['output'] = html.replace(
+            '</body>',
+            '<script src="/analytics.js"></script></body>'
+        )
+        return data
+```
+
+### Registering Plugins
+
+Add plugin names to `config.plugins` in `nitro.config.py`:
+
+```python
+config = Config(
+    plugins=["analytics", "my-other-plugin"],
+)
+```
+
+Plugins are discovered in this order:
+1. Installed Python packages (via `import plugin_name`)
+2. Local files in `src/plugins/<name>.py`
+
+The plugin module must export a `Plugin` class that extends `NitroPlugin`.
+
 ## Styling
 
 ### CSS Files
@@ -463,7 +750,7 @@ div("Content", style="padding: 1rem; background: #f0f0f0;")
 
 ## Static Assets
 
-Place files in `static/` directory - they're copied to build root:
+Place files in `static/` or `src/public/` - both are copied to build root:
 
 ```
 static/
@@ -471,6 +758,9 @@ static/
 ├── robots.txt       → build/robots.txt
 └── images/
     └── logo.png     → build/images/logo.png
+
+src/public/
+└── manifest.json    → build/manifest.json
 ```
 
 Reference in HTML:
@@ -485,20 +775,38 @@ link(rel="icon", href="/favicon.ico")
 Production builds (`nitro build`) include:
 
 1. **HTML Minification** - Removes whitespace, comments
-2. **CSS Minification** - Compresses CSS files
+2. **CSS Minification** - Compresses CSS files (requires `csscompressor`)
 3. **Image Optimization** - Compresses JPG/PNG with Pillow
-4. **Asset Fingerprinting** - Adds content hashes for cache busting
-5. **Sitemap Generation** - Creates sitemap.xml
-6. **Robots.txt** - Creates robots.txt
+4. **Responsive Images** - Generates multi-size AVIF/WebP variants (`--no-responsive` to skip)
+5. **Island Processing** - Injects hydration runtime for islands (`--no-islands` to skip)
+6. **Asset Fingerprinting** - Adds content hashes to CSS/JS filenames for cache busting
+7. **Sitemap Generation** - Creates `sitemap.xml` with all pages
+8. **Robots.txt** - Creates `robots.txt` pointing to sitemap
+9. **Asset Manifest** - Creates `manifest.json` with file hashes and sizes
+10. **Incremental Builds** - Only rebuilds changed pages (use `--force` to bypass)
+
+## Build Caching
+
+Nitro tracks file hashes in `.nitro/cache.json` for incremental builds:
+
+- **Pages** - Rebuilds only pages whose source files have changed
+- **Components** - If any component changes, all pages are rebuilt
+- **Data files** - If any `.json`/`.yaml`/`.yml` data file changes, all pages are rebuilt
+- **Config** - If `nitro.config.py` changes, a full rebuild is triggered
+
+Use `nitro build --force` to ignore the cache and rebuild everything. Use `nitro clean --cache` to clear the cache.
 
 ## Live Reload
 
-The dev server injects a WebSocket client that reloads the page when files change:
+The dev server injects a WebSocket client (at `/__nitro__/livereload`) that reloads the page when files change. File changes are debounced at 0.5 seconds.
 
-- `src/pages/*.py` - Rebuilds changed page
-- `src/components/*.py` - Rebuilds all pages
-- `src/styles/*.css` - Copies assets, reloads
-- `nitro.config.py` - Full rebuild
+| File Changed          | Behavior                |
+|-----------------------|-------------------------|
+| `src/pages/*.py`      | Rebuilds changed page   |
+| `src/components/*.py` | Rebuilds all pages      |
+| `src/styles/*.css`    | Copies assets, reloads  |
+| `src/public/*`        | Copies assets, reloads  |
+| `nitro.config.py`     | Full rebuild            |
 
 ## Deployment
 
@@ -527,6 +835,8 @@ nitro deploy --platform vercel --prod
 ```bash
 nitro deploy --platform cloudflare --prod
 ```
+
+Platform auto-detection checks for config files (`netlify.toml`, `vercel.json`, `wrangler.toml`) and installed CLIs (`netlify`, `vercel`, `wrangler`).
 
 ## Common Patterns
 
@@ -571,11 +881,15 @@ head(
 ### Responsive Images
 
 ```python
+# Manual approach
 picture(
     source(srcset="/img/hero.avif", type="image/avif"),
     source(srcset="/img/hero.webp", type="image/webp"),
     img(src="/img/hero.jpg", alt="Hero image", loading="lazy"),
 )
+
+# Or use ImageOptimizer for automatic responsive image generation at build time
+# (standard <img> tags are automatically replaced with <picture> during build)
 ```
 
 ### Conditional Content
@@ -622,6 +936,11 @@ nitro dev --verbose   # Detailed logging
 - **nitro-datastore** >= 1.0.2 - Data loading with dot notation
 - **nitro-dispatch** >= 1.0.0 - Plugin system hooks
 
+**Optional (for build optimizations):**
+- **Pillow** - Image optimization and responsive image generation
+- **csscompressor** - CSS minification
+- **htmlmin** - HTML minification
+
 ## Version
 
-Current: nitro-cli 1.0.5
+Current: nitro-cli 1.0.7
