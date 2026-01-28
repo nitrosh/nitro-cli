@@ -1,20 +1,20 @@
 """Footer component."""
 
-from nitro_ui.html import footer, p, a
+from nitro_ui import Footer, Paragraph, Href
 
 
-def Footer():
+def SiteFooter():
     """Create a footer component.
 
     Returns:
         Footer element
     """
-    return footer(
-        p(
+    return Footer(
+        Paragraph(
             "Built with ",
-            a("Nitro", href="https://github.com/nitro-sh/nitro-cli", target="_blank"),
+            Href("Nitro", href="https://github.com/nitrosh/nitro-cli", target="_blank"),
             " and ",
-            a("nitro-ui", href="https://github.com/nitro-sh/nitro-ui", target="_blank"),
+            Href("nitro-ui", href="https://github.com/nitrosh/nitro-ui", target="_blank"),
         ),
-        class_name="footer",
+        cls="footer",
     )

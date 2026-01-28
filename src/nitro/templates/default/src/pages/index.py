@@ -2,22 +2,22 @@
 
 import sys
 
-from nitro_ui.html import (
-    html,
-    head,
-    body,
-    title,
-    meta,
-    link,
-    main,
-    section,
-    div,
-    h1,
-    h2,
-    p,
-    a,
-    span,
-    code,
+from nitro_ui import (
+    HTML,
+    Head,
+    Body,
+    Title,
+    Meta,
+    Link,
+    Main,
+    Section,
+    Div,
+    H1,
+    H2,
+    Paragraph,
+    Href,
+    Span,
+    Code,
 )
 from nitro import Page
 
@@ -36,113 +36,113 @@ def render():
     """Render the welcome splash page."""
 
     # Status badge
-    status = div(
-        span(class_name="status-dot"),
+    status = Div(
+        Span(cls="status-dot"),
         "Server running",
-        class_name="status",
+        cls="status",
     )
 
     # Next steps card
-    next_steps = div(
-        h2("Next Steps", class_name="card-title"),
-        div(
-            div(
-                span("1", class_name="command-icon"),
-                div(
-                    code("src/pages/index.py", class_name="command-code"),
-                    p(
+    next_steps = Div(
+        H2("Next Steps", cls="card-title"),
+        Div(
+            Div(
+                Span("1", cls="command-icon"),
+                Div(
+                    Code("src/pages/index.py", cls="command-code"),
+                    Paragraph(
                         "Edit this file to customize your home page",
-                        class_name="command-desc",
+                        cls="command-desc",
                     ),
-                    class_name="command-text",
+                    cls="command-text",
                 ),
-                class_name="command",
+                cls="command",
             ),
-            div(
-                span("2", class_name="command-icon"),
-                div(
-                    code("src/components/", class_name="command-code"),
-                    p("Create reusable components", class_name="command-desc"),
-                    class_name="command-text",
+            Div(
+                Span("2", cls="command-icon"),
+                Div(
+                    Code("src/components/", cls="command-code"),
+                    Paragraph("Create reusable components", cls="command-desc"),
+                    cls="command-text",
                 ),
-                class_name="command",
+                cls="command",
             ),
-            div(
-                span("3", class_name="command-icon"),
-                div(
-                    code("nitro build", class_name="command-code"),
-                    p("Build for production when ready", class_name="command-desc"),
-                    class_name="command-text",
+            Div(
+                Span("3", cls="command-icon"),
+                Div(
+                    Code("nitro build", cls="command-code"),
+                    Paragraph("Build for production when ready", cls="command-desc"),
+                    cls="command-text",
                 ),
-                class_name="command",
+                cls="command",
             ),
         ),
-        class_name="card",
+        cls="card",
     )
 
     # System info card
-    system_info = div(
-        h2("Environment", class_name="card-title"),
-        div(
-            div(
-                p("Python", class_name="info-label"),
-                p(python_version, class_name="info-value"),
-                class_name="info-item",
+    system_info = Div(
+        H2("Environment", cls="card-title"),
+        Div(
+            Div(
+                Paragraph("Python", cls="info-label"),
+                Paragraph(python_version, cls="info-value"),
+                cls="info-item",
             ),
-            div(
-                p("Nitro CLI", class_name="info-label"),
-                p(f"v{nitro_version}", class_name="info-value"),
-                class_name="info-item",
+            Div(
+                Paragraph("Nitro CLI", cls="info-label"),
+                Paragraph(f"v{nitro_version}", cls="info-value"),
+                cls="info-item",
             ),
-            class_name="info-grid",
+            cls="info-grid",
         ),
-        class_name="card",
+        cls="card",
     )
 
     # Links
-    links = div(
-        a(
+    links = Div(
+        Href(
             "Documentation",
-            href="https://github.com/nitro-sh/nitro-cli",
+            href="https://github.com/nitrosh/nitro-cli",
             target="_blank",
         ),
-        a("nitro-ui", href="https://github.com/nitro-sh/nitro-ui", target="_blank"),
-        a(
+        Href("nitro-ui", href="https://github.com/nitrosh/nitro-ui", target="_blank"),
+        Href(
             "Examples",
-            href="https://github.com/nitro-sh/nitro-cli/tree/main/examples",
+            href="https://github.com/nitrosh/nitro-cli/tree/main/examples",
             target="_blank",
         ),
-        class_name="links",
+        cls="links",
     )
 
     # Footer hint
-    footer = p(
+    footer = Paragraph(
         "Edit ",
-        code("src/pages/index.py"),
+        Code("src/pages/index.py"),
         " to replace this page",
-        class_name="footer",
+        cls="footer",
     )
 
-    page = html(
-        head(
-            meta(charset="UTF-8"),
-            meta(name="viewport", content="width=device-width, initial-scale=1.0"),
-            title("Welcome to Nitro"),
-            meta(name="description", content="Your new Nitro project is ready"),
-            link(rel="stylesheet", href="/styles/main.css"),
+    page = HTML(
+        Head(
+            Meta(charset="UTF-8"),
+            Meta(name="viewport", content="width=device-width, initial-scale=1.0"),
+            Title("Welcome to Nitro"),
+            Meta(name="description", content="Your new Nitro project is ready"),
+            Link(rel="stylesheet", href="/styles/main.css"),
         ),
-        body(
-            main(
-                section(
-                    div("⚡", class_name="logo"),
-                    h1("Nitro", class_name="brand"),
-                    p("Your project is ready", class_name="tagline"),
+        Body(
+            Main(
+                Section(
+                    Div("⚡", cls="logo"),
+                    H1("Nitro", cls="brand"),
+                    Paragraph("Your project is ready", cls="tagline"),
                     status,
                     next_steps,
                     system_info,
                     links,
                     footer,
-                    class_name="splash",
+                    cls="splash",
                 ),
             ),
         ),

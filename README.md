@@ -45,19 +45,19 @@ Pages are Python files in `src/pages/` that export a `render()` function:
 
 ```python
 # src/pages/index.py
-from nitro_ui.html import html, head, body, title, meta, h1
+from nitro_ui import HTML, Head, Body, Title, Meta, H1
 from nitro import Page
 
 def render():
     return Page(
         title="Home",
-        content=html(
-            head(
-                meta(charset="UTF-8"),
-                meta(name="viewport", content="width=device-width, initial-scale=1.0"),
-                title("Home"),
+        content=HTML(
+            Head(
+                Meta(charset="UTF-8"),
+                Meta(name="viewport", content="width=device-width, initial-scale=1.0"),
+                Title("Home"),
             ),
-            body(h1("Welcome!"))
+            Body(H1("Welcome!"))
         )
     )
 ```

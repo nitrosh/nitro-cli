@@ -174,19 +174,19 @@ Pages are Python files in `src/pages/` with a `render()` function:
 
 ```python
 # src/pages/index.py
-from nitro_ui.html import html, head, body, title, meta, h1, p
+from nitro_ui import HTML, Head, Body, Title, Meta, H1, Paragraph
 from nitro import Page
 
 def render():
-    page = html(
-        head(
-            meta(charset="UTF-8"),
-            meta(name="viewport", content="width=device-width, initial-scale=1.0"),
-            title("My Page"),
+    page = HTML(
+        Head(
+            Meta(charset="UTF-8"),
+            Meta(name="viewport", content="width=device-width, initial-scale=1.0"),
+            Title("My Page"),
         ),
-        body(
-            h1("Hello, World!"),
-            p("Welcome to my site."),
+        Body(
+            H1("Hello, World!"),
+            Paragraph("Welcome to my site."),
         ),
     )
 
@@ -219,43 +219,68 @@ Page(
 | `src/pages/blog/post.py`      | `/blog/post.html`      |
 | `src/pages/docs/api/index.py` | `/docs/api/index.html` |
 
-## nitro-ui HTML Module
+## nitro-ui Elements
 
-Import HTML elements from `nitro_ui.html`:
+All HTML elements are imported directly from `nitro_ui` as PascalCase classes:
 
 ```python
-from nitro_ui.html import (
+from nitro_ui import (
     # Document
-    html, head, body, title, meta, link, style, script,
+    HTML, Head, Body, Title, Meta, Link, Style, Script,
 
     # Sections
-    header, footer, main, section, article, aside, nav,
+    Header, Footer, Main, Section, Article, Aside, Nav,
 
     # Content
-    div, span, p, a, img, br, hr,
+    Div, Span, Paragraph, Href, Image, Br, HorizontalRule,
 
     # Headings
-    h1, h2, h3, h4, h5, h6,
+    H1, H2, H3, H4, H5, H6,
 
     # Lists
-    ul, ol, li, dl, dt, dd,
+    UnorderedList, OrderedList, ListItem,
+    DescriptionList, DescriptionTerm, DescriptionDetails,
 
     # Tables
-    table, thead, tbody, tfoot, tr, th, td,
+    Table, TableHeader, TableBody, TableFooter,
+    TableRow, TableHeaderCell, TableDataCell,
 
     # Forms
-    form, input_, label, button, select, option, textarea,
+    Form, Input, Label, Button, Select, Option, Textarea,
 
     # Text formatting
-    strong, em, code, pre, blockquote, small, mark,
+    Strong, Em, Code, Pre, Blockquote, Small, Mark,
 
     # Media
-    video, audio, source, picture, figure, figcaption,
+    Video, Audio, Source, Picture, Figure, Figcaption,
 
     # Other
-    iframe, canvas, details, summary,
+    IFrame, Canvas, Details, Summary,
 )
 ```
+
+### Element Name Mapping
+
+Some element names differ from their HTML tag names:
+
+| nitro-ui Class      | HTML Tag     |
+|---------------------|--------------|
+| `Paragraph`         | `<p>`        |
+| `Href`              | `<a>`        |
+| `Image`             | `<img>`      |
+| `HorizontalRule`    | `<hr>`       |
+| `UnorderedList`     | `<ul>`       |
+| `OrderedList`       | `<ol>`       |
+| `ListItem`          | `<li>`       |
+| `DescriptionList`   | `<dl>`       |
+| `DescriptionTerm`   | `<dt>`       |
+| `DescriptionDetails`| `<dd>`       |
+| `TableHeader`       | `<thead>`    |
+| `TableBody`         | `<tbody>`    |
+| `TableFooter`       | `<tfoot>`    |
+| `TableRow`          | `<tr>`       |
+| `TableHeaderCell`   | `<th>`       |
+| `TableDataCell`     | `<td>`       |
 
 ### Attribute Naming
 
@@ -263,7 +288,6 @@ Python reserved words are suffixed with `_`:
 
 - `class_name="container"` → renders as `class="container"`
 - `for_="email"` → renders as `for="email"`
-- `input_()` → renders as `<input>` (function name avoids shadowing `input()` builtin)
 
 All other HTML attributes use their standard names as keyword arguments.
 
@@ -271,58 +295,58 @@ All other HTML attributes use their standard names as keyword arguments.
 
 ```python
 # Basic element
-div("Hello")                           # <div>Hello</div>
+Div("Hello")                           # <div>Hello</div>
 
 # With attributes
-div("Content", class_name="container") # <div class="container">Content</div>
-a("Click", href="/page")               # <a href="/page">Click</a>
+Div("Content", class_name="container") # <div class="container">Content</div>
+Href("Click", href="/page")            # <a href="/page">Click</a>
 
 # Nested elements
-div(
-    h1("Title"),
-    p("Paragraph 1"),
-    p("Paragraph 2"),
+Div(
+    H1("Title"),
+    Paragraph("Paragraph 1"),
+    Paragraph("Paragraph 2"),
     class_name="content"
 )
 
 # Mixed content
-p("Visit ", a("our site", href="/"), " for more.")
+Paragraph("Visit ", Href("our site", href="/"), " for more.")
 
 # Self-closing
-img(src="/logo.png", alt="Logo")
-meta(charset="UTF-8")
+Image(src="/logo.png", alt="Logo")
+Meta(charset="UTF-8")
 
 # Boolean attributes
-input_(type="email", required=True)
+Input(type="email", required=True)
 ```
 
 ### Common Patterns
 
 ```python
 # Navigation
-nav(
-    a("Home", href="/"),
-    a("About", href="/about.html"),
-    a("Contact", href="/contact.html"),
+Nav(
+    Href("Home", href="/"),
+    Href("About", href="/about.html"),
+    Href("Contact", href="/contact.html"),
     class_name="nav"
 )
 
 # Card component
-div(
-    img(src="/image.jpg", alt="Card image"),
-    h3("Card Title"),
-    p("Card description"),
-    a("Read more", href="/details"),
+Div(
+    Image(src="/image.jpg", alt="Card image"),
+    H3("Card Title"),
+    Paragraph("Card description"),
+    Href("Read more", href="/details"),
     class_name="card"
 )
 
 # Form
-form(
-    label("Email:", for_="email"),
-    input_(type="email", id="email", name="email", required=True),
-    label("Message:", for_="msg"),
-    textarea(id="msg", name="message", rows="4"),
-    button("Submit", type="submit"),
+Form(
+    Label("Email:", for_="email"),
+    Input(type="email", id="email", name="email", required=True),
+    Label("Message:", for_="msg"),
+    Textarea(id="msg", name="message", rows="4"),
+    Button("Submit", type="submit"),
     action="/submit",
     method="post"
 )
@@ -334,22 +358,22 @@ Create reusable components in `src/components/`:
 
 ```python
 # src/components/card.py
-from nitro_ui.html import div, h3, p, a, img
+from nitro_ui import Div, H3, Paragraph, Href, Image
 
 def Card(title, description, image=None, link=None):
     """Reusable card component."""
     children = []
 
     if image:
-        children.append(img(src=image, alt=title))
+        children.append(Image(src=image, alt=title))
 
-    children.append(h3(title))
-    children.append(p(description))
+    children.append(H3(title))
+    children.append(Paragraph(description))
 
     if link:
-        children.append(a("Learn more", href=link))
+        children.append(Href("Learn more", href=link))
 
-    return div(*children, class_name="card")
+    return Div(*children, class_name="card")
 ```
 
 Use in pages:
@@ -360,11 +384,12 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+from nitro_ui import HTML, Body
 from components.card import Card
 
 def render():
-    return html(
-        body(
+    return HTML(
+        Body(
             Card("Title 1", "Description 1", link="/page1"),
             Card("Title 2", "Description 2", image="/img.jpg"),
         )
@@ -377,7 +402,7 @@ Generate multiple pages from data using `[param].py` naming:
 
 ```python
 # src/pages/blog/[slug].py
-from nitro_ui.html import html, head, body, title, h1, p, article
+from nitro_ui import HTML, Head, Body, Title, H1, Paragraph, Article
 from nitro import Page
 from nitro_datastore import NitroDataStore
 
@@ -389,12 +414,12 @@ def get_paths():
 
 def render(slug, title, content):
     """Render page for each set of parameters."""
-    page = html(
-        head(title(f"{title} - Blog")),
-        body(
-            article(
-                h1(title),
-                p(content),
+    page = HTML(
+        Head(Title(f"{title} - Blog")),
+        Body(
+            Article(
+                H1(title),
+                Paragraph(content),
             )
         )
     )
@@ -480,14 +505,14 @@ Default strategy is `idle`.
 
 ```python
 from nitro import Island
-from nitro_ui.html import div, button
+from nitro_ui import Div, Button, Span
 
 def Counter(count=0):
     """A component that will be hydrated on the client."""
-    return div(
-        button("-"),
-        span(str(count)),
-        button("+"),
+    return Div(
+        Button("-"),
+        Span(str(count)),
+        Button("+"),
         class_name="counter"
     )
 
@@ -503,9 +528,9 @@ island = Island(
 
 # Use in a page - renders as HTML with data-* hydration attributes
 def render():
-    return html(
-        body(
-            h1("My Page"),
+    return HTML(
+        Body(
+            H1("My Page"),
             island,  # Island renders to HTML via str() or .render()
         )
     )
@@ -726,26 +751,26 @@ body {
 Link in pages:
 
 ```python
-from nitro_ui.html import link
+from nitro_ui import Link
 
-head(
-    link(rel="stylesheet", href="/assets/styles/main.css"),
+Head(
+    Link(rel="stylesheet", href="/assets/styles/main.css"),
 )
 ```
 
 ### Inline Styles
 
 ```python
-from nitro_ui.html import style, div
+from nitro_ui import Style, Div
 
 # In head
-style("""
+Style("""
     .container { max-width: 1200px; margin: 0 auto; }
     .hero { padding: 4rem 2rem; }
 """)
 
 # Inline on element
-div("Content", style="padding: 1rem; background: #f0f0f0;")
+Div("Content", style="padding: 1rem; background: #f0f0f0;")
 ```
 
 ## Static Assets
@@ -766,8 +791,8 @@ src/public/
 Reference in HTML:
 
 ```python
-img(src="/images/logo.png", alt="Logo")
-link(rel="icon", href="/favicon.ico")
+Image(src="/images/logo.png", alt="Logo")
+Link(rel="icon", href="/favicon.ico")
 ```
 
 ## Build Optimizations
@@ -844,21 +869,21 @@ Platform auto-detection checks for config files (`netlify.toml`, `vercel.json`, 
 
 ```python
 # src/components/layout.py
-from nitro_ui.html import html, head, body, title, meta, link, main, header, footer
+from nitro_ui import HTML, Head, Body, Title, Meta, Link, Main, Header, Footer
 
 def Layout(page_title, children, description=None):
-    return html(
-        head(
-            meta(charset="UTF-8"),
-            meta(name="viewport", content="width=device-width, initial-scale=1.0"),
-            title(page_title),
-            meta(name="description", content=description or page_title),
-            link(rel="stylesheet", href="/assets/styles/main.css"),
+    return HTML(
+        Head(
+            Meta(charset="UTF-8"),
+            Meta(name="viewport", content="width=device-width, initial-scale=1.0"),
+            Title(page_title),
+            Meta(name="description", content=description or page_title),
+            Link(rel="stylesheet", href="/assets/styles/main.css"),
         ),
-        body(
-            header(),  # nav content
-            main(*children if isinstance(children, (list, tuple)) else [children]),
-            footer(),  # footer content
+        Body(
+            Header(),  # nav content
+            Main(*children if isinstance(children, (list, tuple)) else [children]),
+            Footer(),  # footer content
         ),
     )
 ```
@@ -866,15 +891,15 @@ def Layout(page_title, children, description=None):
 ### SEO Meta Tags
 
 ```python
-head(
-    title("Page Title"),
-    meta(name="description", content="Page description for search engines"),
-    meta(name="keywords", content="keyword1, keyword2"),
-    meta(property="og:title", content="Title for social sharing"),
-    meta(property="og:description", content="Description for social"),
-    meta(property="og:image", content="https://site.com/image.jpg"),
-    meta(name="twitter:card", content="summary_large_image"),
-    link(rel="canonical", href="https://site.com/page"),
+Head(
+    Title("Page Title"),
+    Meta(name="description", content="Page description for search engines"),
+    Meta(name="keywords", content="keyword1, keyword2"),
+    Meta(property="og:title", content="Title for social sharing"),
+    Meta(property="og:description", content="Description for social"),
+    Meta(property="og:image", content="https://site.com/image.jpg"),
+    Meta(name="twitter:card", content="summary_large_image"),
+    Link(rel="canonical", href="https://site.com/page"),
 )
 ```
 
@@ -882,10 +907,10 @@ head(
 
 ```python
 # Manual approach
-picture(
-    source(srcset="/img/hero.avif", type="image/avif"),
-    source(srcset="/img/hero.webp", type="image/webp"),
-    img(src="/img/hero.jpg", alt="Hero image", loading="lazy"),
+Picture(
+    Source(srcset="/img/hero.avif", type="image/avif"),
+    Source(srcset="/img/hero.webp", type="image/webp"),
+    Image(src="/img/hero.jpg", alt="Hero image", loading="lazy"),
 )
 
 # Or use ImageOptimizer for automatic responsive image generation at build time
@@ -898,11 +923,11 @@ picture(
 def render():
     is_production = os.getenv("NODE_ENV") == "production"
 
-    analytics = script(src="/analytics.js") if is_production else None
+    analytics = Script(src="/analytics.js") if is_production else None
 
-    return html(
-        head(title("Page"), analytics),
-        body(h1("Page content")),
+    return HTML(
+        Head(Title("Page"), analytics),
+        Body(H1("Page content")),
     )
 ```
 
@@ -932,7 +957,7 @@ nitro dev --verbose   # Detailed logging
 
 ## Dependencies
 
-- **nitro-ui** >= 1.0.4 - HTML element builder
+- **nitro-ui** >= 1.0.5 - HTML element builder
 - **nitro-datastore** >= 1.0.2 - Data loading with dot notation
 - **nitro-dispatch** >= 1.0.0 - Plugin system hooks
 
