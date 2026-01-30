@@ -8,6 +8,8 @@ A static site generator that lets you build websites using Python and [nitro-ui]
 - **Live Reload** - Development server with automatic browser refresh
 - **Incremental Builds** - Only rebuild changed pages
 - **Dynamic Routes** - Generate pages from data with `[slug].py` pattern
+- **Draft Pages** - Mark pages as drafts to exclude from production builds
+- **Environment Variables** - Auto-load `.env` files with `from nitro import env`
 - **Image Optimization** - Responsive images with WebP/AVIF conversion
 - **Islands Architecture** - Partial hydration for interactive components
 - **Plugin System** - Extend the build lifecycle with nitro-dispatch hooks
@@ -83,15 +85,19 @@ def render(slug, title):
 
 ## Commands
 
-| Command            | Description                       |
-|--------------------|-----------------------------------|
-| `nitro new <name>` | Create new project                |
-| `nitro dev`        | Start dev server with live reload |
-| `nitro build`      | Build for production              |
-| `nitro preview`    | Preview production build          |
-| `nitro clean`      | Remove build artifacts            |
-| `nitro deploy`     | Deploy to hosting platform        |
-| `nitro info`       | Show project and environment info |
+| Command            | Description                        |
+|--------------------|------------------------------------|
+| `nitro new <name>` | Create new project                 |
+| `nitro init`       | Initialize Nitro in current dir    |
+| `nitro dev`        | Start dev server with live reload  |
+| `nitro build`      | Build for production               |
+| `nitro preview`    | Preview production build           |
+| `nitro routes`     | List all routes                    |
+| `nitro check`      | Validate site without building     |
+| `nitro export`     | Export site as zip archive         |
+| `nitro clean`      | Remove build artifacts             |
+| `nitro deploy`     | Deploy to hosting platform         |
+| `nitro info`       | Show project and environment info  |
 
 Run `nitro <command> --help` for options.
 
