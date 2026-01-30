@@ -25,6 +25,7 @@ All public classes are importable from the top-level `nitro` package:
 from nitro import (
     Config,            # Project configuration
     Page,              # Page object returned by render()
+    env,               # Environment variable accessor (auto-loads .env)
     ImageConfig,       # Image optimization settings
     ImageOptimizer,    # Image optimization engine
     OptimizedImage,    # Result of optimizing an image
@@ -39,12 +40,20 @@ from nitro import (
 All commands support `--verbose` / `-v` for detailed output and `--debug` for full tracebacks.
 
 ### `nitro new <name>`
-Create a new project.
+Create a new project with full scaffolding.
 
 ```bash
 nitro new my-site
 nitro new my-site --no-git      # Skip git initialization
 nitro new my-site --no-install  # Skip dependency installation
+```
+
+### `nitro init`
+Initialize Nitro in an existing directory (minimal scaffolding).
+
+```bash
+nitro init           # Create config, directories, starter page
+nitro init --force   # Overwrite existing files
 ```
 
 ### `nitro dev` / `nitro serve`
@@ -117,6 +126,32 @@ Show project and environment information (Nitro version, Python version, platfor
 ```bash
 nitro info
 nitro info --json  # Output as JSON
+```
+
+### `nitro routes`
+List all routes the site will generate.
+
+```bash
+nitro routes         # Table output with URL, source, type, status
+nitro routes --json  # JSON output
+```
+
+### `nitro check`
+Validate site without building (render check + internal link check).
+
+```bash
+nitro check              # Check all pages and links
+nitro check --verbose    # Show detailed output
+nitro check --no-links   # Skip link checking
+```
+
+### `nitro export`
+Export built site as a zip archive.
+
+```bash
+nitro export                    # Export build/ to <project>-<date>.zip
+nitro export -o site.zip        # Custom output path
+nitro export --build-first      # Build before exporting
 ```
 
 ## Project Structure
@@ -207,7 +242,25 @@ Page(
     content=html_element,         # Required: nitro-ui element
     meta={"key": "value"},        # Optional: meta tags dict (arbitrary keys)
     template="layout",            # Optional: template name
+    draft=False,                  # Optional: exclude from production builds
 )
+```
+
+### Draft Pages
+
+Pages with `draft=True` are:
+- Rendered during development (`nitro dev`)
+- Excluded from production builds (`nitro build`)
+- Excluded from sitemap generation
+- Shown with "draft" status in `nitro routes`
+
+```python
+def render():
+    return Page(
+        title="Work in Progress",
+        content=html_element,
+        draft=True,  # Won't be included in production build
+    )
 ```
 
 ### File Path to URL Mapping
@@ -805,7 +858,7 @@ Production builds (`nitro build`) include:
 4. **Responsive Images** - Generates multi-size AVIF/WebP variants (`--no-responsive` to skip)
 5. **Island Processing** - Injects hydration runtime for islands (`--no-islands` to skip)
 6. **Asset Fingerprinting** - Adds content hashes to CSS/JS filenames for cache busting
-7. **Sitemap Generation** - Creates `sitemap.xml` with all pages
+7. **Sitemap Generation** - Creates `sitemap.xml` with all pages (respects page meta)
 8. **Robots.txt** - Creates `robots.txt` pointing to sitemap
 9. **Asset Manifest** - Creates `manifest.json` with file hashes and sizes
 10. **Incremental Builds** - Only rebuilds changed pages (use `--force` to bypass)
@@ -917,13 +970,36 @@ Picture(
 # (standard <img> tags are automatically replaced with <picture> during build)
 ```
 
+### Environment Variables
+
+Use `env` to access environment variables with automatic `.env` file loading:
+
+```python
+from nitro import env
+
+# Access variables as attributes
+api_key = env.API_KEY
+debug_mode = env.DEBUG
+
+# Check environment
+if env.is_production():
+    # Production-only code
+    pass
+
+if env.is_development():
+    # Dev-only code
+    pass
+```
+
+Requires `python-dotenv` for `.env` file support: `pip install nitro-cli[dotenv]`
+
 ### Conditional Content
 
 ```python
-def render():
-    is_production = os.getenv("NODE_ENV") == "production"
+from nitro import env
 
-    analytics = Script(src="/analytics.js") if is_production else None
+def render():
+    analytics = Script(src="/analytics.js") if env.is_production() else None
 
     return HTML(
         Head(Title("Page"), analytics),
@@ -955,17 +1031,37 @@ nitro build --debug   # Full tracebacks
 nitro dev --verbose   # Detailed logging
 ```
 
+## Sitemap Customization
+
+Control sitemap generation via page `meta`:
+
+```python
+Page(
+    title="My Page",
+    content=html,
+    meta={
+        "sitemap": False,              # Exclude from sitemap
+        "lastmod": "2024-01-15",       # Custom last modified date
+        "sitemap_priority": 0.9,       # Priority (0.0-1.0, default: 0.8)
+        "sitemap_changefreq": "daily", # Change frequency
+    },
+)
+```
+
+Draft pages are automatically excluded from the sitemap.
+
 ## Dependencies
 
-- **nitro-ui** >= 1.0.5 - HTML element builder
+- **nitro-ui** >= 1.0.6 - HTML element builder
 - **nitro-datastore** >= 1.0.2 - Data loading with dot notation
 - **nitro-dispatch** >= 1.0.0 - Plugin system hooks
 
-**Optional (for build optimizations):**
+**Optional:**
+- **python-dotenv** - `.env` file support (`pip install nitro-cli[dotenv]`)
 - **Pillow** - Image optimization and responsive image generation
 - **csscompressor** - CSS minification
 - **htmlmin** - HTML minification
 
 ## Version
 
-Current: nitro-cli 1.0.7
+Current: nitro-cli 1.0.8

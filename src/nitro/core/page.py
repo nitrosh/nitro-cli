@@ -13,6 +13,7 @@ class Page:
         content: Any,
         meta: Optional[Dict[str, Any]] = None,
         template: Optional[str] = None,
+        draft: bool = False,
     ):
         """
         Initialize a page.
@@ -22,11 +23,13 @@ class Page:
             content: nitro-ui content (HTML element)
             meta: Meta tags dictionary
             template: Template name (if using a layout)
+            draft: If True, page is excluded from production builds
         """
         self.title = title
         self.content = content
         self.meta = meta or {}
         self.template = template
+        self.draft = draft
 
 
 def get_project_root() -> Optional[Path]:

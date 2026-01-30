@@ -5,7 +5,20 @@ from rich.console import Console
 from rich.text import Text
 from rich.table import Table
 from . import __version__
-from .commands import new, serve, dev, build, preview, clean, info, deploy
+from .commands import (
+    new,
+    serve,
+    dev,
+    build,
+    preview,
+    clean,
+    info,
+    deploy,
+    init,
+    export_cmd,
+    routes,
+    check,
+)
 from .core.page import get_project_root
 
 console = Console()
@@ -50,11 +63,14 @@ def show_welcome():
     table.add_column("description", style="dim")
 
     table.add_row(" nitro new [dim]<name>[/dim]", "Create a new project")
+    table.add_row(" nitro init", "Initialize Nitro in current directory")
     table.add_row(" nitro dev", "Start dev server with hot reload")
     table.add_row(" nitro build", "Build for production")
     table.add_row(" nitro preview", "Preview production build")
+    table.add_row(" nitro routes", "List all routes")
+    table.add_row(" nitro check", "Validate site without building")
+    table.add_row(" nitro export", "Export site as zip")
     table.add_row(" nitro clean", "Clean build artifacts")
-    table.add_row(" nitro info", "Show project info")
 
     console.print(" [bold]Commands:[/bold]\n")
     console.print(table)
@@ -88,6 +104,10 @@ main.add_command(preview)  # type: ignore[arg-type]
 main.add_command(clean)  # type: ignore[arg-type]
 main.add_command(info)  # type: ignore[arg-type]
 main.add_command(deploy)  # type: ignore[arg-type]
+main.add_command(init)  # type: ignore[arg-type]
+main.add_command(export_cmd, name="export")  # type: ignore[arg-type]
+main.add_command(routes)  # type: ignore[arg-type]
+main.add_command(check)  # type: ignore[arg-type]
 
 
 if __name__ == "__main__":

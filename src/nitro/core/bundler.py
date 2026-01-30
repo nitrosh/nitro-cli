@@ -1,6 +1,6 @@
 """Asset bundler and optimizer for production builds."""
 
-from typing import List, Dict
+from typing import List, Dict, Optional
 from pathlib import Path
 import hashlib
 import re
@@ -95,31 +95,77 @@ class Bundler:
         return count
 
     def generate_sitemap(
-        self, base_url: str, html_files: List[Path], output_path: Path
+        self,
+        base_url: str,
+        html_files: List[Path],
+        output_path: Path,
+        page_metadata: Optional[Dict[str, Dict]] = None,
     ) -> None:
-        """Generate sitemap.xml."""
+        """Generate sitemap.xml.
+
+        Args:
+            base_url: Site base URL
+            html_files: List of HTML file paths
+            output_path: Path to write sitemap.xml
+            page_metadata: Optional dict of page metadata for enhanced sitemap
+                Keys are relative paths, values can include:
+                - sitemap: False to exclude from sitemap
+                - lastmod or published: Date string for lastmod
+                - sitemap_priority: Priority value (0.0-1.0)
+                - sitemap_changefreq: Change frequency
+        """
         from datetime import datetime
+
+        page_metadata = page_metadata or {}
 
         urls = []
         for html_file in html_files:
             rel_path = html_file.relative_to(self.build_dir)
-            url_path = str(rel_path).replace("\\", "/")
+            rel_path_str = str(rel_path).replace("\\", "/")
 
+            # Get metadata for this page
+            meta = page_metadata.get(rel_path_str, {})
+
+            # Check if page should be excluded from sitemap
+            if meta.get("sitemap") is False:
+                continue
+
+            # Skip draft pages
+            if meta.get("draft"):
+                continue
+
+            url_path = rel_path_str
             if url_path == "index.html":
                 url_path = ""
             elif url_path.endswith("/index.html"):
                 url_path = url_path[:-11]
 
             full_url = f"{base_url.rstrip('/')}/{url_path}"
-            mtime = datetime.fromtimestamp(html_file.stat().st_mtime)
-            lastmod = mtime.strftime("%Y-%m-%d")
+
+            # Determine lastmod from metadata or file mtime
+            if meta.get("lastmod"):
+                lastmod = meta["lastmod"]
+            elif meta.get("published"):
+                lastmod = meta["published"]
+            else:
+                mtime = datetime.fromtimestamp(html_file.stat().st_mtime)
+                lastmod = mtime.strftime("%Y-%m-%d")
+
+            # Determine priority from metadata or defaults
+            if meta.get("sitemap_priority"):
+                priority = str(meta["sitemap_priority"])
+            else:
+                priority = "1.0" if url_path == "" else "0.8"
+
+            # Determine changefreq from metadata or default
+            changefreq = meta.get("sitemap_changefreq", "weekly")
 
             urls.append(
                 {
                     "loc": full_url,
                     "lastmod": lastmod,
-                    "changefreq": "weekly",
-                    "priority": "1.0" if url_path == "" else "0.8",
+                    "changefreq": changefreq,
+                    "priority": priority,
                 }
             )
 
