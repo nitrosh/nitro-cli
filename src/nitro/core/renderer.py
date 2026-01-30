@@ -25,6 +25,139 @@ class Renderer:
         """Check if a page uses dynamic routing (e.g., [slug].py)."""
         return "[" in page_path.stem and "]" in page_path.stem
 
+    def get_dynamic_paths(self, page_path: Path, project_root: Path) -> List[dict]:
+        """Get all paths for a dynamic route.
+
+        Args:
+            page_path: Path to dynamic page file
+            project_root: Project root directory
+
+        Returns:
+            List of parameter dictionaries from get_paths()
+        """
+        paths_to_remove = []
+
+        try:
+            with _import_lock:
+                if str(project_root) not in sys.path:
+                    sys.path.insert(0, str(project_root))
+                    paths_to_remove.append(str(project_root))
+
+                src_dir = project_root / "src"
+                if str(src_dir) not in sys.path:
+                    sys.path.insert(0, str(src_dir))
+                    paths_to_remove.append(str(src_dir))
+
+                self._invalidate_project_modules(project_root)
+
+            module_name = f"dynamic_paths_{page_path.stem}_{id(self)}"
+            spec = importlib.util.spec_from_file_location(module_name, page_path)
+
+            if not spec or not spec.loader:
+                return []
+
+            module = importlib.util.module_from_spec(spec)
+            sys.modules[spec.name] = module
+
+            try:
+                spec.loader.exec_module(module)
+
+                if not hasattr(module, "get_paths"):
+                    return []
+
+                paths = module.get_paths()
+                # Normalize paths to list of dicts
+                result = []
+                for path_params in paths:
+                    if isinstance(path_params, dict):
+                        result.append(path_params)
+                    else:
+                        # Single value - use the param name from filename
+                        param_name = page_path.stem[1:-1]  # Extract from [slug].py
+                        result.append({param_name: path_params})
+                return result
+
+            finally:
+                if spec.name in sys.modules:
+                    del sys.modules[spec.name]
+
+        except Exception:
+            return []
+
+        finally:
+            with _import_lock:
+                for path in paths_to_remove:
+                    if path in sys.path:
+                        sys.path.remove(path)
+
+    def render_dynamic_page_single(
+        self, page_path: Path, project_root: Path, params: dict
+    ) -> Optional[str]:
+        """Render a single instance of a dynamic page with given params.
+
+        Args:
+            page_path: Path to dynamic page file
+            project_root: Project root directory
+            params: Parameters to pass to render()
+
+        Returns:
+            Rendered HTML or None on error
+        """
+        paths_to_remove = []
+
+        try:
+            with _import_lock:
+                if str(project_root) not in sys.path:
+                    sys.path.insert(0, str(project_root))
+                    paths_to_remove.append(str(project_root))
+
+                src_dir = project_root / "src"
+                if str(src_dir) not in sys.path:
+                    sys.path.insert(0, str(src_dir))
+                    paths_to_remove.append(str(src_dir))
+
+                self._invalidate_project_modules(project_root)
+
+            module_name = f"dynamic_single_{page_path.stem}_{id(self)}"
+            spec = importlib.util.spec_from_file_location(module_name, page_path)
+
+            if not spec or not spec.loader:
+                return None
+
+            module = importlib.util.module_from_spec(spec)
+            sys.modules[spec.name] = module
+
+            try:
+                spec.loader.exec_module(module)
+
+                if not hasattr(module, "render"):
+                    return None
+
+                page = module.render(**params)
+
+                if isinstance(page, Page):
+                    html = self._render_page_object(page)
+                else:
+                    html = self._render_element(page)
+
+                if html:
+                    html = self._post_process(html)
+
+                return html
+
+            finally:
+                if spec.name in sys.modules:
+                    del sys.modules[spec.name]
+
+        except Exception:
+            return None
+
+        finally:
+            with _import_lock:
+                for path in paths_to_remove:
+                    if path in sys.path:
+                        sys.path.remove(path)
+
     def render_dynamic_page(
         self,
         page_path: Path,
@@ -125,8 +258,19 @@ class Renderer:
 
         return f"{output_name}.html"
 
-    def render_page(self, page_path: Path, project_root: Path) -> Optional[str]:
-        """Render a page file to HTML."""
+    def render_page(
+        self, page_path: Path, project_root: Path, return_page: bool = False
+    ) -> Optional[Any]:
+        """Render a page file to HTML.
+
+        Args:
+            page_path: Path to page file
+            project_root: Project root directory
+            return_page: If True, return the Page object instead of rendered HTML
+
+        Returns:
+            HTML string, Page object (if return_page=True), or None on error
+        """
         paths_to_remove = []
 
         try:
@@ -160,6 +304,10 @@ class Renderer:
                     return None
 
                 page = module.render()
+
+                # Return page object if requested
+                if return_page:
+                    return page
 
                 if isinstance(page, Page):
                     html = self._render_page_object(page)
@@ -360,12 +508,22 @@ class Renderer:
                 soup = BeautifulSoup(html, "html.parser")
                 html = soup.prettify()
             except ImportError:
-                warning("beautifulsoup4 not installed, skipping pretty print (pip install beautifulsoup4)")
+                warning(
+                    "beautifulsoup4 not installed, skipping pretty print (pip install beautifulsoup4)"
+                )
 
         return html
 
     # Directories to exclude from module invalidation (virtual envs, installed packages)
-    _EXCLUDE_DIRS = {".venv", "venv", "site-packages", "dist-packages", ".tox", ".nox", ".eggs"}
+    _EXCLUDE_DIRS = {
+        ".venv",
+        "venv",
+        "site-packages",
+        "dist-packages",
+        ".tox",
+        ".nox",
+        ".eggs",
+    }
 
     def _invalidate_project_modules(self, project_root: Path) -> None:
         """Remove cached modules from project directory to ensure fresh imports."""

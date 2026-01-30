@@ -1,5 +1,6 @@
 """Build command for production optimization."""
 
+import os
 import sys
 from datetime import datetime
 
@@ -76,6 +77,9 @@ def build(
         set_level(LogLevel.QUIET)
 
     try:
+        # Set production environment variable
+        os.environ["NITRO_ENV"] = "production"
+
         header("Building for production...")
         start_time = datetime.now()
 
@@ -108,7 +112,7 @@ def build(
 
             update("Generating pages...")
             success_result = generator.generate(
-                verbose=verbose_flag, force=force or clean
+                verbose=verbose_flag, force=force or clean, production=True
             )
 
             if not success_result:
@@ -186,10 +190,13 @@ def build(
             update("Generating metadata...")
             html_files = list(generator.build_dir.rglob("*.html"))
             sitemap_path = generator.build_dir / "sitemap.xml"
+            # Pass page metadata for enhanced sitemap generation
+            page_metadata = getattr(generator, "page_metadata", None)
             bundler.generate_sitemap(
                 base_url=config.base_url,
                 html_files=html_files,
                 output_path=sitemap_path,
+                page_metadata=page_metadata,
             )
             verbose(f"Created sitemap.xml with {len(html_files)} URLs")
 

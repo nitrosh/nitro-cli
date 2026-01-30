@@ -38,13 +38,9 @@ class LiveReloadServer:
         if not request.path.startswith("/__nitro__"):
             status = resp.status
             if status >= 400:
-                console.print(
-                    f"  [red]{request.method} {request.path} {status}[/red]"
-                )
+                console.print(f"  [red]{request.method} {request.path} {status}[/red]")
             else:
-                console.print(
-                    f"  [dim]{request.method} {request.path} {status}[/dim]"
-                )
+                console.print(f"  [dim]{request.method} {request.path} {status}[/dim]")
         return resp
 
     def _setup_routes(self) -> None:

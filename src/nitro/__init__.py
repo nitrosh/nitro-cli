@@ -5,6 +5,7 @@ __author__ = "Sean Nieuwoudt"
 
 from .core.config import Config
 from .core.page import Page
+from .core.env import env
 from .core.images import (
     ImageConfig,
     ImageOptimizer,
@@ -19,6 +20,7 @@ from .core.islands import (
 __all__ = [
     "Config",
     "Page",
+    "env",
     # Images
     "ImageConfig",
     "ImageOptimizer",

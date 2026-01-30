@@ -75,6 +75,7 @@ class Generator:
         force: bool = False,
         parallel: bool = True,
         quiet: bool = False,
+        production: bool = False,
     ) -> bool:
         """Generate the static site.
 
@@ -83,10 +84,13 @@ class Generator:
             force: Force full rebuild, ignore cache
             parallel: Use parallel page generation (default: True)
             quiet: Suppress progress output (for background thread execution)
+            production: If True, exclude draft pages from output
 
         Returns:
             True if successful, False otherwise
         """
+        self.production = production
+        self.page_metadata = {}  # Store page metadata for sitemap
         info(f"Generating site from {self.source_dir}")
         info(f"Output directory: {self.build_dir}")
 
@@ -373,7 +377,32 @@ class Generator:
         Returns:
             True if successful, False otherwise
         """
-        html = self.renderer.render_page(page_path, self.project_root)
+        # Render with page object return to check draft status
+        page_obj = self.renderer.render_page(
+            page_path, self.project_root, return_page=True
+        )
+
+        if page_obj is None:
+            return False
+
+        # Check for draft status in production mode
+        is_draft = (
+            getattr(page_obj, "draft", False) if hasattr(page_obj, "draft") else False
+        )
+        if getattr(self, "production", False) and is_draft:
+            if verbose:
+                console.print(
+                    f"    [dim]Skipping draft: {page_path.relative_to(self.project_root)}[/]"
+                )
+            return True  # Return True to not count as failure
+
+        # Get HTML content
+        if hasattr(page_obj, "content"):
+            html = self.renderer._render_page_object(page_obj)
+            html = self.renderer._post_process(html)
+        else:
+            html = self.renderer._render_element(page_obj)
+            html = self.renderer._post_process(html)
 
         if html:
             hook_result = self.plugin_loader.trigger(
@@ -398,6 +427,17 @@ class Generator:
 
             output_path.parent.mkdir(parents=True, exist_ok=True)
             output_path.write_text(html)
+
+            # Store metadata for sitemap
+            if hasattr(self, "page_metadata"):
+                rel_path = str(output_path.relative_to(self.build_dir))
+                meta = (
+                    getattr(page_obj, "meta", {}) if hasattr(page_obj, "meta") else {}
+                )
+                self.page_metadata[rel_path] = {
+                    "draft": is_draft,
+                    **meta,
+                }
 
             if verbose:
                 console.print(f"    → {output_path.relative_to(self.project_root)}")
@@ -436,7 +476,30 @@ class Generator:
             True if successful, False otherwise
         """
         try:
-            html = self.renderer.render_page(page_path, self.project_root)
+            # Render with page object return to check draft status
+            page_obj = self.renderer.render_page(
+                page_path, self.project_root, return_page=True
+            )
+
+            if page_obj is None:
+                return False
+
+            # Check for draft status in production mode
+            is_draft = (
+                getattr(page_obj, "draft", False)
+                if hasattr(page_obj, "draft")
+                else False
+            )
+            if getattr(self, "production", False) and is_draft:
+                return True  # Skip drafts in production but count as success
+
+            # Get HTML content
+            if hasattr(page_obj, "content"):
+                html = self.renderer._render_page_object(page_obj)
+                html = self.renderer._post_process(html)
+            else:
+                html = self.renderer._render_element(page_obj)
+                html = self.renderer._post_process(html)
 
             if html:
                 # Trigger post-generate hook to allow HTML modification
@@ -466,6 +529,19 @@ class Generator:
 
                 # Write HTML file
                 output_path.write_text(html)
+
+                # Store metadata for sitemap
+                if hasattr(self, "page_metadata"):
+                    rel_path = str(output_path.relative_to(self.build_dir))
+                    meta = (
+                        getattr(page_obj, "meta", {})
+                        if hasattr(page_obj, "meta")
+                        else {}
+                    )
+                    self.page_metadata[rel_path] = {
+                        "draft": is_draft,
+                        **meta,
+                    }
 
                 if verbose:
                     console.print(f"  → {output_path.relative_to(self.project_root)}")

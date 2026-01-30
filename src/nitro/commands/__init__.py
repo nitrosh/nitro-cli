@@ -8,6 +8,10 @@ from .preview import preview
 from .clean import clean
 from .info import info
 from .deploy import deploy
+from .init import init
+from .export import export_cmd
+from .routes import routes
+from .check import check
 
 __all__ = [
     "new",
@@ -18,4 +22,8 @@ __all__ = [
     "clean",
     "info",
     "deploy",
+    "init",
+    "export_cmd",
+    "routes",
+    "check",
 ]
