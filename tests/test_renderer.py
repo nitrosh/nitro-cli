@@ -242,6 +242,27 @@ class TestPostProcess:
         assert len(result) <= len(html)
         assert "<h1>Title</h1>" in result
 
+    def test_pretty_print_preserves_svg_viewbox(self):
+        """Pretty print should preserve camelCase SVG attributes like viewBox."""
+        config = Config(renderer={"pretty_print": True})
+        renderer = Renderer(config)
+
+        html = '<html><body><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="40"/></svg></body></html>'
+        result = renderer._post_process(html)
+
+        assert "viewBox" in result
+
+    def test_pretty_print_preserves_svg_preserveaspectratio(self):
+        """Pretty print should preserve preserveAspectRatio attribute."""
+        config = Config(renderer={"pretty_print": True})
+        renderer = Renderer(config)
+
+        html = '<html><body><svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet"></svg></body></html>'
+        result = renderer._post_process(html)
+
+        assert "viewBox" in result
+        assert "preserveAspectRatio" in result
+
 
 class TestRenderPage:
     """Tests for render_page method with actual page files."""

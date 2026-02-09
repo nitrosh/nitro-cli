@@ -197,6 +197,7 @@ def build(
                 html_files=html_files,
                 output_path=sitemap_path,
                 page_metadata=page_metadata,
+                clean_urls=config.clean_urls,
             )
             verbose(f"Created sitemap.xml with {len(html_files)} URLs")
 

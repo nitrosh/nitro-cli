@@ -15,6 +15,7 @@ class Config:
         source_dir: str = "src",
         renderer: Optional[Dict[str, Any]] = None,
         plugins: Optional[List[str]] = None,
+        clean_urls: bool = True,
     ):
         self.site_name = site_name
         self.base_url = base_url
@@ -26,6 +27,7 @@ class Config:
             **(renderer or {}),
         }
         self.plugins = plugins or []
+        self.clean_urls = clean_urls
 
 
 def load_config(config_path: Path) -> Config:

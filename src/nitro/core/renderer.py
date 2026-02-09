@@ -505,7 +505,17 @@ class Renderer:
             try:
                 from bs4 import BeautifulSoup
 
-                soup = BeautifulSoup(html, "html.parser")
+                try:
+                    import html5lib  # noqa: F401
+
+                    soup = BeautifulSoup(html, "html5lib")
+                except ImportError:
+                    warning(
+                        "html5lib not installed, falling back to html.parser "
+                        "(SVG attributes like viewBox may be lowercased). "
+                        "Install with: pip install html5lib"
+                    )
+                    soup = BeautifulSoup(html, "html.parser")
                 html = soup.prettify()
             except ImportError:
                 warning(

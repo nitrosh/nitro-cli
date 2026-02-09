@@ -144,7 +144,8 @@ class TestGenerateSitemap:
             assert "<urlset" in content
             assert "<url>" in content
             assert "<loc>https://example.com/</loc>" in content
-            assert "<loc>https://example.com/about.html</loc>" in content
+            # Default clean_urls=True strips .html extensions
+            assert "<loc>https://example.com/about</loc>" in content
 
     def test_index_has_higher_priority(self):
         """Index page should have priority 1.0."""
@@ -260,6 +261,136 @@ class TestFingerprintAssets:
             html_content = (build_dir / "index.html").read_text()
             new_css_name = Path(mapping["style.css"]).name
             assert new_css_name in html_content
+
+
+class TestSitemapCleanUrls:
+    """Tests for clean_urls option in generate_sitemap."""
+
+    def test_clean_urls_strips_html_extension(self):
+        """With clean_urls=True (default), .html should be stripped from URLs."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            build_dir = Path(tmpdir)
+
+            (build_dir / "index.html").write_text("<html></html>")
+            (build_dir / "about.html").write_text("<html></html>")
+            (build_dir / "contact.html").write_text("<html></html>")
+
+            html_files = sorted(build_dir.glob("*.html"))
+            output_path = build_dir / "sitemap.xml"
+
+            bundler = Bundler(build_dir)
+            bundler.generate_sitemap(
+                "https://example.com", html_files, output_path, clean_urls=True
+            )
+
+            content = output_path.read_text()
+            assert "<loc>https://example.com/about</loc>" in content
+            assert "<loc>https://example.com/contact</loc>" in content
+            # .html should NOT appear in non-index URLs
+            assert "about.html" not in content
+            assert "contact.html" not in content
+
+    def test_clean_urls_false_keeps_html_extension(self):
+        """With clean_urls=False, .html should be preserved."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            build_dir = Path(tmpdir)
+
+            (build_dir / "index.html").write_text("<html></html>")
+            (build_dir / "about.html").write_text("<html></html>")
+
+            html_files = sorted(build_dir.glob("*.html"))
+            output_path = build_dir / "sitemap.xml"
+
+            bundler = Bundler(build_dir)
+            bundler.generate_sitemap(
+                "https://example.com", html_files, output_path, clean_urls=False
+            )
+
+            content = output_path.read_text()
+            assert "<loc>https://example.com/about.html</loc>" in content
+
+    def test_index_html_always_stripped(self):
+        """index.html should always be stripped regardless of clean_urls setting."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            build_dir = Path(tmpdir)
+
+            (build_dir / "index.html").write_text("<html></html>")
+            subdir = build_dir / "blog"
+            subdir.mkdir()
+            (subdir / "index.html").write_text("<html></html>")
+
+            html_files = sorted(build_dir.rglob("*.html"))
+            output_path = build_dir / "sitemap.xml"
+
+            bundler = Bundler(build_dir)
+
+            # Test with clean_urls=False - index.html should still be stripped
+            bundler.generate_sitemap(
+                "https://example.com", html_files, output_path, clean_urls=False
+            )
+
+            content = output_path.read_text()
+            assert "<loc>https://example.com/</loc>" in content
+            assert "<loc>https://example.com/blog</loc>" in content
+            assert "index.html" not in content
+
+
+class TestSitemapXmlEscaping:
+    """Tests for XML escaping in generate_sitemap."""
+
+    def test_ampersand_in_url_is_escaped(self):
+        """URLs with & should be properly XML-escaped."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            build_dir = Path(tmpdir)
+
+            (build_dir / "search.html").write_text("<html></html>")
+
+            html_files = list(build_dir.glob("*.html"))
+            output_path = build_dir / "sitemap.xml"
+
+            bundler = Bundler(build_dir)
+            # The base URL itself contains &
+            bundler.generate_sitemap(
+                "https://example.com/search?foo=1&bar=2",
+                html_files,
+                output_path,
+                clean_urls=True,
+            )
+
+            content = output_path.read_text()
+            # & should be escaped as &amp; in XML
+            assert "&amp;" in content
+            # Raw & (not followed by amp;) should not appear in <loc>
+            import re
+
+            # Find all <loc> values and check they don't have unescaped &
+            locs = re.findall(r"<loc>(.*?)</loc>", content)
+            for loc in locs:
+                # After unescaping &amp; -> &, there should be no raw & in the original
+                assert "&" not in loc or "&amp;" in loc
+
+    def test_special_xml_chars_escaped(self):
+        """Special XML characters (<, >, &) should be escaped."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            build_dir = Path(tmpdir)
+
+            (build_dir / "index.html").write_text("<html></html>")
+
+            html_files = list(build_dir.glob("*.html"))
+            output_path = build_dir / "sitemap.xml"
+
+            bundler = Bundler(build_dir)
+            # Use a base URL with & to test escaping
+            bundler.generate_sitemap(
+                "https://example.com?a=1&b=2",
+                html_files,
+                output_path,
+            )
+
+            content = output_path.read_text()
+            assert "&amp;" in content
+            # The output should be valid XML (no unescaped &)
+            assert "<loc>https://example.com?a=1&amp;b=2/</loc>" in content
 
 
 class TestCalculateBuildSize:

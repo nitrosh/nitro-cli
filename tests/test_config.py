@@ -22,6 +22,7 @@ class TestConfig:
         assert config.renderer["pretty_print"] is False
         assert config.renderer["minify_html"] is False
         assert config.plugins == []
+        assert config.clean_urls is True
 
     def test_custom_values(self):
         """Config should accept custom values."""
@@ -47,6 +48,16 @@ class TestConfig:
 
         assert config.renderer["minify_html"] is True
         assert config.renderer["pretty_print"] is False
+
+    def test_clean_urls_default_true(self):
+        """clean_urls should default to True."""
+        config = Config()
+        assert config.clean_urls is True
+
+    def test_clean_urls_can_be_disabled(self):
+        """clean_urls can be set to False."""
+        config = Config(clean_urls=False)
+        assert config.clean_urls is False
 
 
 class TestLoadConfig:

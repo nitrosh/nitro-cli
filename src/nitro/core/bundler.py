@@ -4,6 +4,7 @@ from typing import List, Dict, Optional
 from pathlib import Path
 import hashlib
 import re
+from xml.sax.saxutils import escape as xml_escape
 
 from ..utils import success, warning, error
 
@@ -100,6 +101,7 @@ class Bundler:
         html_files: List[Path],
         output_path: Path,
         page_metadata: Optional[Dict[str, Dict]] = None,
+        clean_urls: bool = True,
     ) -> None:
         """Generate sitemap.xml.
 
@@ -113,6 +115,7 @@ class Bundler:
                 - lastmod or published: Date string for lastmod
                 - sitemap_priority: Priority value (0.0-1.0)
                 - sitemap_changefreq: Change frequency
+            clean_urls: Strip .html extensions from URLs (default: True)
         """
         from datetime import datetime
 
@@ -139,6 +142,8 @@ class Bundler:
                 url_path = ""
             elif url_path.endswith("/index.html"):
                 url_path = url_path[:-11]
+            elif clean_urls and url_path.endswith(".html"):
+                url_path = url_path[:-5]
 
             full_url = f"{base_url.rstrip('/')}/{url_path}"
 
@@ -176,10 +181,10 @@ class Bundler:
 
         for url in urls:
             xml_lines.append("  <url>")
-            xml_lines.append(f"    <loc>{url['loc']}</loc>")
-            xml_lines.append(f"    <lastmod>{url['lastmod']}</lastmod>")
-            xml_lines.append(f"    <changefreq>{url['changefreq']}</changefreq>")
-            xml_lines.append(f"    <priority>{url['priority']}</priority>")
+            xml_lines.append(f"    <loc>{xml_escape(url['loc'])}</loc>")
+            xml_lines.append(f"    <lastmod>{xml_escape(url['lastmod'])}</lastmod>")
+            xml_lines.append(f"    <changefreq>{xml_escape(url['changefreq'])}</changefreq>")
+            xml_lines.append(f"    <priority>{xml_escape(url['priority'])}</priority>")
             xml_lines.append("  </url>")
 
         xml_lines.append("</urlset>")
