@@ -56,7 +56,7 @@ class Island:
 
     def __post_init__(self):
         # Generate unique ID for this island instance
-        props_hash = hashlib.md5(
+        props_hash = hashlib.sha256(
             json.dumps(self.props, sort_keys=True, default=str).encode()
         ).hexdigest()[:8]
         self._id = f"{self.name}-{props_hash}"

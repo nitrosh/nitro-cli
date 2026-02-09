@@ -159,9 +159,26 @@ class LiveReloadServer:
 
     ws.onclose = function() {
         console.log('[Nitro] Disconnected from live reload server');
-        setTimeout(function() {
-            window.location.reload();
-        }, 1000);
+        // Attempt to reconnect instead of blindly reloading
+        var retries = 0;
+        var maxRetries = 10;
+        function tryReconnect() {
+            retries++;
+            if (retries > maxRetries) {
+                console.log('[Nitro] Server appears to be stopped');
+                return;
+            }
+            var testWs = new WebSocket(protocol + '//' + host + '/__nitro__/livereload');
+            testWs.onopen = function() {
+                console.log('[Nitro] Reconnected, reloading...');
+                window.location.reload();
+            };
+            testWs.onerror = function() {
+                testWs.close();
+                setTimeout(tryReconnect, 1000);
+            };
+        }
+        setTimeout(tryReconnect, 1000);
     };
 
     ws.onerror = function(error) {

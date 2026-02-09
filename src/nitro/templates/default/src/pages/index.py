@@ -103,13 +103,13 @@ def render():
     links = Div(
         Href(
             "Documentation",
-            href="https://github.com/nitrosh/nitro-cli",
+            href="https://github.com/nitro-sh/nitro-cli",
             target="_blank",
         ),
-        Href("nitro-ui", href="https://github.com/nitrosh/nitro-ui", target="_blank"),
+        Href("nitro-ui", href="https://github.com/nitro-sh/nitro-ui", target="_blank"),
         Href(
             "Examples",
-            href="https://github.com/nitrosh/nitro-cli/tree/main/examples",
+            href="https://github.com/nitro-sh/nitro-cli/tree/main/examples",
             target="_blank",
         ),
         cls="links",
@@ -129,7 +129,7 @@ def render():
             Meta(name="viewport", content="width=device-width, initial-scale=1.0"),
             Title("Welcome to Nitro"),
             Meta(name="description", content="Your new Nitro project is ready"),
-            Link(rel="stylesheet", href="/styles/main.css"),
+            Link(rel="stylesheet", href="/assets/styles/main.css"),
         ),
         Body(
             Main(

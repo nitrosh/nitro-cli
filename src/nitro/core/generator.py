@@ -3,6 +3,7 @@
 from typing import List, Optional
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor, as_completed
+import threading
 import shutil
 import os
 
@@ -91,6 +92,7 @@ class Generator:
         """
         self.production = production
         self.page_metadata = {}  # Store page metadata for sitemap
+        self._metadata_lock = threading.Lock()  # Thread-safe metadata access
         info(f"Generating site from {self.source_dir}")
         info(f"Output directory: {self.build_dir}")
 
@@ -530,7 +532,7 @@ class Generator:
                 # Write HTML file
                 output_path.write_text(html)
 
-                # Store metadata for sitemap
+                # Store metadata for sitemap (thread-safe)
                 if hasattr(self, "page_metadata"):
                     rel_path = str(output_path.relative_to(self.build_dir))
                     meta = (
@@ -538,10 +540,11 @@ class Generator:
                         if hasattr(page_obj, "meta")
                         else {}
                     )
-                    self.page_metadata[rel_path] = {
-                        "draft": is_draft,
-                        **meta,
-                    }
+                    with self._metadata_lock:
+                        self.page_metadata[rel_path] = {
+                            "draft": is_draft,
+                            **meta,
+                        }
 
                 if verbose:
                     console.print(f"  → {output_path.relative_to(self.project_root)}")

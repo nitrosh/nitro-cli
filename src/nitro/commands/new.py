@@ -162,13 +162,13 @@ def copy_template(src: Path, dst: Path, verbose_mode: bool = False) -> int:
 def create_requirements_txt(project_path: Path) -> None:
     """Create requirements.txt file."""
     requirements = """# Core dependencies
-nitro-cli>=0.1.0
-nitro-ui>=1.0.3
-nitro-datastore>=1.0.0
+nitro-cli>=1.0.8
+nitro-ui>=1.0.8
+nitro-datastore>=1.0.2
 
 # Optional dependencies
-# markdown>=3.3.0  # For markdown support
-# python-frontmatter>=1.0.0  # For frontmatter parsing
+# markdown>=3.6.0  # For markdown support
+# python-frontmatter>=1.1.0  # For frontmatter parsing
 """
     (project_path / "requirements.txt").write_text(requirements)
 

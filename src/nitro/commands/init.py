@@ -8,21 +8,18 @@ from ..utils import success, error, info, warning
 
 DEFAULT_CONFIG = '''"""Nitro configuration file."""
 
-# Site settings
-title = "My Nitro Site"
-base_url = "https://example.com"
+from nitro import Config
 
-# Directory settings
-source_dir = "src"
-build_dir = "build"
-
-# Renderer settings
-renderer = {
-    "minify_html": False,
-}
-
-# Plugins (optional)
-plugins = []
+config = Config(
+    site_name="My Nitro Site",
+    base_url="https://example.com",
+    build_dir="build",
+    source_dir="src",
+    renderer={
+        "pretty_print": True,
+        "minify_html": False,
+    },
+)
 '''
 
 DEFAULT_INDEX_PAGE = '''"""Home page."""
@@ -86,7 +83,7 @@ ENV/
 Thumbs.db
 
 # Nitro
-.nitro_cache/
+.nitro/
 
 # Environment
 .env

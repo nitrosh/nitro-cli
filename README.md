@@ -1,6 +1,6 @@
 # Nitro CLI
 
-A static site generator that lets you build websites using Python and [nitro-ui](https://github.com/nitrosh/nitro-ui).
+A static site generator that lets you build websites using Python and [nitro-ui](https://github.com/nitro-sh/nitro-ui).
 
 ## Features
 
@@ -26,7 +26,7 @@ pip install nitro-cli
 Add Nitro CLI knowledge to your AI coding assistant:
 
 ```bash
-npx skills add nitrosh/nitro-cli
+npx skills add nitro-sh/nitro-cli
 ```
 
 This enables AI assistants like Claude Code to understand Nitro CLI and generate correct nitro-ui code.
@@ -117,10 +117,10 @@ config = Config(
 
 ## Ecosystem
 
-- **[nitro-ui](https://github.com/nitrosh/nitro-ui)** - Programmatic HTML generation
-- **[nitro-datastore](https://github.com/nitrosh/nitro-datastore)** - Data loading with dot notation access
-- **[nitro-dispatch](https://github.com/nitrosh/nitro-dispatch)** - Plugin system
-- **[nitro-validate](https://github.com/nitrosh/nitro-validate)** - Data validation
+- **[nitro-ui](https://github.com/nitro-sh/nitro-ui)** - Programmatic HTML generation
+- **[nitro-datastore](https://github.com/nitro-sh/nitro-datastore)** - Data loading with dot notation access
+- **[nitro-dispatch](https://github.com/nitro-sh/nitro-dispatch)** - Plugin system
+- **[nitro-validate](https://github.com/nitro-sh/nitro-validate)** - Data validation
 
 ## License
 

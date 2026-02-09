@@ -210,7 +210,7 @@ Sitemap: {sitemap_url}
 
         for file_path in self.build_dir.rglob("*"):
             if file_path.is_file():
-                hasher = hashlib.md5()
+                hasher = hashlib.sha256()
                 hasher.update(file_path.read_bytes())
                 file_hash = hasher.hexdigest()[:8]
                 rel_path = str(file_path.relative_to(self.build_dir))
@@ -241,7 +241,7 @@ Sitemap: {sitemap_url}
 
         for asset_path in asset_files:
             content = asset_path.read_bytes()
-            hasher = hashlib.md5()
+            hasher = hashlib.sha256()
             hasher.update(content)
             content_hash = hasher.hexdigest()[:8]
 

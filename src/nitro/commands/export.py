@@ -26,7 +26,7 @@ def export_cmd(output, build_first):
     config_path = project_root / "nitro.config.py"
     config = load_config(config_path) if config_path.exists() else None
     site_name = (
-        getattr(config, "title", project_root.name) if config else project_root.name
+        getattr(config, "site_name", project_root.name) if config else project_root.name
     )
     # Sanitize site name for filename
     site_name = "".join(c if c.isalnum() or c in "-_" else "_" for c in site_name)

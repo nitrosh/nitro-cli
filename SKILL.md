@@ -1052,15 +1052,28 @@ Draft pages are automatically excluded from the sitemap.
 
 ## Dependencies
 
-- **nitro-ui** >= 1.0.6 - HTML element builder
+All of these are installed automatically with `pip install nitro-cli`:
+
+- **nitro-ui** >= 1.0.8 - HTML element builder
 - **nitro-datastore** >= 1.0.2 - Data loading with dot notation
 - **nitro-dispatch** >= 1.0.0 - Plugin system hooks
+- **click** >= 8.1.0 - CLI framework
+- **rich** >= 13.0.0 - Terminal output
+- **watchdog** >= 4.0.0 - File system watcher
+- **aiohttp** >= 3.9.0 - Async HTTP server
+- **aiofiles** >= 23.0.0 - Async file I/O
+- **Pillow** >= 10.0.0 - Image optimization
+- **csscompressor** >= 0.9.5 - CSS minification
+- **minify-html** >= 0.15.0 - HTML minification
+- **beautifulsoup4** >= 4.12.0 - HTML pretty printing
+- **pyyaml** >= 6.0.1 - YAML support
 
-**Optional:**
-- **python-dotenv** - `.env` file support (`pip install nitro-cli[dotenv]`)
-- **Pillow** - Image optimization and responsive image generation
-- **csscompressor** - CSS minification
-- **htmlmin** - HTML minification
+**Optional extras:**
+- `pip install nitro-cli[dotenv]` - `.env` file support (python-dotenv)
+- `pip install nitro-cli[markdown]` - Markdown page support (python-frontmatter, markdown)
+- `pip install nitro-cli[images]` - AVIF image format support (pillow-avif-plugin)
+
+**Requires Python >= 3.9**
 
 ## Version
 

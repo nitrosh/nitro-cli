@@ -4,6 +4,7 @@ import subprocess
 import shutil
 import sys
 from pathlib import Path
+from typing import Optional
 
 import click
 
@@ -44,7 +45,18 @@ def deploy(platform, build, prod, verbose):
         ctx = click.Context(build_cmd)
         try:
             ctx.invoke(
-                build_cmd, minify=True, optimize=True, fingerprint=True, quiet=True
+                build_cmd,
+                minify=True,
+                optimize=True,
+                responsive=False,
+                fingerprint=True,
+                islands=True,
+                output="build",
+                clean=False,
+                force=False,
+                verbose_flag=verbose,
+                quiet=not verbose,
+                debug=False,
             )
         except SystemExit as e:
             if e.code not in (0, None):
@@ -73,7 +85,7 @@ def deploy(platform, build, prod, verbose):
         _deploy_cloudflare(build_dir, prod, verbose)
 
 
-def _detect_platform(project_root: Path) -> str:
+def _detect_platform(project_root: Path) -> Optional[str]:
     """Auto-detect the deployment platform."""
     if (project_root / "netlify.toml").exists():
         return "netlify"

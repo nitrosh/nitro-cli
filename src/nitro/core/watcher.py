@@ -1,7 +1,7 @@
 """File watcher for development mode."""
 
 import threading
-from typing import Callable, Optional
+from typing import Callable, Dict, Optional
 from pathlib import Path
 import time
 
@@ -24,7 +24,7 @@ class NitroFileHandler(FileSystemEventHandler):
         self.project_root = project_root
         self.on_change = on_change
         self.debounce_seconds = debounce_seconds
-        self.last_modified: dict[str, float] = {}
+        self.last_modified: Dict[str, float] = {}
         self._lock = threading.Lock()  # Thread-safe access to last_modified
 
     def on_modified(self, event: FileSystemEvent) -> None:

@@ -151,7 +151,7 @@ class ImageOptimizer:
         Returns:
             Hash string
         """
-        hasher = hashlib.md5()
+        hasher = hashlib.sha256()
         hasher.update(path.read_bytes())
         return hasher.hexdigest()[:12]
 
