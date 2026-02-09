@@ -169,15 +169,15 @@ my-site/
 │   ├── styles/          # CSS files
 │   │   └── main.css     # → /assets/styles/main.css
 │   ├── public/          # Files copied to build root (like static/)
+│   ├── static/          # Static assets (copied as-is to build root)
 │   ├── plugins/         # Local plugins (auto-discovered)
 │   └── data/            # JSON/YAML data files
-├── static/              # Static assets (copied as-is to build root)
 ├── .nitro/              # Build cache (gitignored)
 │   └── cache.json       # Incremental build hashes
 └── build/               # Generated output (gitignored)
 ```
 
-Both `static/` and `src/public/` are copied to the build root. `src/styles/` is copied to `build/assets/styles/`.
+Both `src/static/` and `src/public/` are copied to the build root. `src/styles/` is copied to `build/assets/styles/`.
 
 ## Configuration
 
@@ -663,7 +663,7 @@ optimizer = ImageOptimizer(config=ImageConfig())
 
 # Optimize a single image (returns OptimizedImage or None)
 optimized = optimizer.optimize_image(
-    source_path=Path("static/images/hero.jpg"),
+    source_path=Path("src/static/images/hero.jpg"),
     output_dir=Path("build"),
     base_url="",
 )
@@ -680,7 +680,7 @@ if optimized:
 # Process an entire HTML string - replaces <img> tags with <picture> elements
 processed_html = optimizer.process_html(
     html_content=html_string,
-    source_dir=Path("static"),
+    source_dir=Path("src/static"),
     output_dir=Path("build"),
     base_url="",
 )
@@ -828,10 +828,10 @@ Div("Content", style="padding: 1rem; background: #f0f0f0;")
 
 ## Static Assets
 
-Place files in `static/` or `src/public/` - both are copied to build root:
+Place files in `src/static/` or `src/public/` - both are copied to build root:
 
 ```
-static/
+src/static/
 ├── favicon.ico      → build/favicon.ico
 ├── robots.txt       → build/robots.txt
 └── images/

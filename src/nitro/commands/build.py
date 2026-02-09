@@ -153,7 +153,7 @@ def build(
                     original_content = html_file.read_text()
                     processed_content = img_optimizer.process_html(
                         original_content,
-                        source_dir=generator.project_root / "static",
+                        source_dir=generator.source_dir / "static",
                         output_dir=generator.build_dir,
                         base_url="/",
                     )

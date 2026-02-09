@@ -524,31 +524,22 @@ class Renderer:
 
         return html
 
-    # Directories to exclude from module invalidation (virtual envs, installed packages)
-    _EXCLUDE_DIRS = {
-        ".venv",
-        "venv",
-        "site-packages",
-        "dist-packages",
-        ".tox",
-        ".nox",
-        ".eggs",
-    }
-
     def _invalidate_project_modules(self, project_root: Path) -> None:
-        """Remove cached modules from project directory to ensure fresh imports."""
-        project_str = str(project_root)
+        """Remove cached page modules to ensure fresh imports.
+
+        Only invalidates modules under src/pages/ — shared modules like
+        components, utils, etc. are kept cached. This prevents a race
+        condition where one thread invalidates shared modules while another
+        thread is mid-import during parallel page generation.
+        """
+        pages_dir = str(project_root / "src" / "pages")
         modules_to_remove = []
 
         for name, module in sys.modules.items():
             if module is None:
                 continue
             module_file = getattr(module, "__file__", None)
-            if module_file and project_str in module_file:
-                # Skip modules inside virtual environments or installed packages
-                parts = Path(module_file).parts
-                if any(excluded in parts for excluded in self._EXCLUDE_DIRS):
-                    continue
+            if module_file and pages_dir in module_file:
                 modules_to_remove.append(name)
 
         for name in modules_to_remove:

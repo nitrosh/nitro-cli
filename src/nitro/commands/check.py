@@ -145,7 +145,7 @@ def check(verbose, links):
 
     # Add common static paths (these would be served from public/ or static/)
     public_dir = source_dir / "public"
-    static_dir = project_root / "static"
+    static_dir = source_dir / "static"
 
     for static_source in [public_dir, static_dir]:
         if static_source.exists():

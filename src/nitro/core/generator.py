@@ -576,8 +576,8 @@ class Generator:
             # Copy public files to root of build directory
             self._copy_directory(public_src, self.build_dir, "public", verbose)
 
-        # Copy static files (static/ -> build/)
-        static_src = self.project_root / "static"
+        # Copy static files (src/static/ -> build/)
+        static_src = self.source_dir / "static"
         if static_src.exists():
             self._copy_directory(static_src, self.build_dir, "static", verbose)
 
