@@ -45,4 +45,5 @@ Nitro isn’t just one library - it's a growing toolkit of focused building bloc
 - **[nitro-ui](https://github.com/nitrosh/nitro-ui)** - Generate clean, reusable HTML with a lightweight, developer-friendly API
 - **[nitro-datastore](https://github.com/nitrosh/nitro-datastore)** - Load and access data effortlessly using simple dot-notation paths
 - **[nitro-dispatch](https://github.com/nitrosh/nitro-dispatch)** - A flexible plugin system to extend features without touching core code
+- **[nitro-image](https://github.com/nitrosh/nitro-image)** - Responsive image optimization with WebP/AVIF conversion
 - **[nitro-validate](https://github.com/nitrosh/nitro-validate)** - Fast, reliable data validation to keep your inputs and payloads rock-solid

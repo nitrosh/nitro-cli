@@ -1,6 +1,6 @@
 # Nitro CLI
 
-A static site generator that lets you build websites using Python and [nitro-ui](https://github.com/nitro-sh/nitro-ui).
+A static site generator that lets you build websites using Python and [nitro-ui](https://github.com/nitrosh/nitro-ui).
 
 ## Features
 
@@ -117,10 +117,11 @@ config = Config(
 
 ## Ecosystem
 
-- **[nitro-ui](https://github.com/nitro-sh/nitro-ui)** - Programmatic HTML generation
-- **[nitro-datastore](https://github.com/nitro-sh/nitro-datastore)** - Data loading with dot notation access
-- **[nitro-dispatch](https://github.com/nitro-sh/nitro-dispatch)** - Plugin system
-- **[nitro-validate](https://github.com/nitro-sh/nitro-validate)** - Data validation
+- **[nitro-ui](https://github.com/nitrosh/nitro-ui)** - Build HTML with Python, not strings
+- **[nitro-datastore](https://github.com/nitrosh/nitro-datastore)** - Schema-free JSON data store with dot notation access
+- **[nitro-dispatch](https://github.com/nitrosh/nitro-dispatch)** - Framework-agnostic plugin system
+- **[nitro-image](https://github.com/nitrosh/nitro-image)** - Fast, friendly image processing for the web
+- **[nitro-validate](https://github.com/nitrosh/nitro-validate)** - Dependency-free data validation
 
 ## License
 

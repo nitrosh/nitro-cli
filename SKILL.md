@@ -316,24 +316,24 @@ from nitro_ui import (
 
 Some element names differ from their HTML tag names:
 
-| nitro-ui Class      | HTML Tag     |
-|---------------------|--------------|
-| `Paragraph`         | `<p>`        |
-| `Href`              | `<a>`        |
-| `Image`             | `<img>`      |
-| `HorizontalRule`    | `<hr>`       |
-| `UnorderedList`     | `<ul>`       |
-| `OrderedList`       | `<ol>`       |
-| `ListItem`          | `<li>`       |
-| `DescriptionList`   | `<dl>`       |
-| `DescriptionTerm`   | `<dt>`       |
-| `DescriptionDetails`| `<dd>`       |
-| `TableHeader`       | `<thead>`    |
-| `TableBody`         | `<tbody>`    |
-| `TableFooter`       | `<tfoot>`    |
-| `TableRow`          | `<tr>`       |
-| `TableHeaderCell`   | `<th>`       |
-| `TableDataCell`     | `<td>`       |
+| nitro-ui Class       | HTML Tag  |
+|----------------------|-----------|
+| `Paragraph`          | `<p>`     |
+| `Href`               | `<a>`     |
+| `Image`              | `<img>`   |
+| `HorizontalRule`     | `<hr>`    |
+| `UnorderedList`      | `<ul>`    |
+| `OrderedList`        | `<ol>`    |
+| `ListItem`           | `<li>`    |
+| `DescriptionList`    | `<dl>`    |
+| `DescriptionTerm`    | `<dt>`    |
+| `DescriptionDetails` | `<dd>`    |
+| `TableHeader`        | `<thead>` |
+| `TableBody`          | `<tbody>` |
+| `TableFooter`        | `<tfoot>` |
+| `TableRow`           | `<tr>`    |
+| `TableHeaderCell`    | `<th>`    |
+| `TableDataCell`      | `<td>`    |
 
 ### Attribute Naming
 
@@ -1077,4 +1077,4 @@ All of these are installed automatically with `pip install nitro-cli`:
 
 ## Version
 
-Current: nitro-cli 1.0.8
+Current: nitro-cli 1.0.10
