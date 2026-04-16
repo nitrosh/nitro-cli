@@ -262,6 +262,57 @@ class TestFingerprintAssets:
             new_css_name = Path(mapping["style.css"]).name
             assert new_css_name in html_content
 
+    def test_skips_already_fingerprinted_files(self):
+        """Should not re-fingerprint files from a previous build (issue #11)."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            build_dir = Path(tmpdir)
+
+            # Simulate state after a previous build: both the fresh source
+            # file and the old fingerprinted copy exist in build/
+            js_content = "console.log('nav');"
+            (build_dir / "nav.js").write_text(js_content)
+            (build_dir / "nav.36da3320.js").write_text(js_content)
+
+            bundler = Bundler(build_dir)
+            mapping = bundler.fingerprint_assets()
+
+            # Only the fresh file should be fingerprinted
+            assert "nav.js" in mapping
+            assert "nav.36da3320.js" not in mapping
+
+            # No double-hashed files should exist
+            for f in build_dir.iterdir():
+                # Count dots in stem — a stacked hash would have 2+ dots
+                assert f.stem.count(".") <= 1, f"Stacked fingerprint: {f.name}"
+
+    def test_incremental_build_no_hash_stacking(self):
+        """Running fingerprint_assets twice should not stack hashes."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            build_dir = Path(tmpdir)
+
+            css_content = "body { color: blue; }"
+            (build_dir / "main.css").write_text(css_content)
+
+            bundler = Bundler(build_dir)
+
+            # First fingerprint
+            mapping1 = bundler.fingerprint_assets()
+            first_result = mapping1["main.css"]
+
+            # Simulate incremental build: fresh source file reappears
+            (build_dir / "main.css").write_text(css_content)
+
+            # Second fingerprint
+            mapping2 = bundler.fingerprint_assets()
+
+            assert "main.css" in mapping2
+            assert mapping2["main.css"] == first_result
+
+            # Only fingerprinted files and the newly renamed file should exist
+            css_files = list(build_dir.glob("*.css"))
+            # Should not have more than 1 CSS file (the fingerprinted one)
+            assert len(css_files) <= 1, f"Expected 1 CSS file, got: {[f.name for f in css_files]}"
+
 
 class TestSitemapCleanUrls:
     """Tests for clean_urls option in generate_sitemap."""
