@@ -233,6 +233,9 @@ Sitemap: {sitemap_url}
         except (IOError, OSError) as e:
             error(f"Failed to write asset manifest: {e}")
 
+    # Matches stems that already end with an 8-char hex fingerprint (e.g. "nav.36da3320")
+    _FINGERPRINT_RE = re.compile(r"\.[0-9a-f]{8}$")
+
     def fingerprint_assets(self) -> Dict[str, str]:
         """Add content hashes to CSS and JS filenames for cache busting."""
         asset_files = []
@@ -245,6 +248,9 @@ Sitemap: {sitemap_url}
         path_mapping = {}
 
         for asset_path in asset_files:
+            # Skip files already fingerprinted from a previous build
+            if self._FINGERPRINT_RE.search(asset_path.stem):
+                continue
             content = asset_path.read_bytes()
             hasher = hashlib.sha256()
             hasher.update(content)
