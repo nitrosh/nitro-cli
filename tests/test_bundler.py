@@ -282,7 +282,7 @@ class TestFingerprintAssets:
 
             # No double-hashed files should exist
             for f in build_dir.iterdir():
-                # Count dots in stem — a stacked hash would have 2+ dots
+                # Count dots in stem - a stacked hash would have 2+ dots
                 assert f.stem.count(".") <= 1, f"Stacked fingerprint: {f.name}"
 
     def test_incremental_build_no_hash_stacking(self):
