@@ -5,7 +5,32 @@ from pathlib import Path
 
 
 class Config:
-    """Configuration class for Nitro projects."""
+    """Project-level configuration for a Nitro site.
+
+    A `Config` instance is typically declared in `nitro.config.py` at the
+    project root as a module-level `config = Config(...)` binding. The CLI
+    loads it via `load_config()` during build and dev workflows, and its
+    fields drive output paths, URL rewriting, renderer behavior, and plugin
+    activation.
+
+    Attributes:
+        site_name: Human-readable site name, available to plugins and templates.
+        base_url: Canonical site URL, used for sitemaps, absolute links, and RSS.
+        build_dir: Directory where generated HTML and assets are written.
+        source_dir: Directory containing `pages/`, `data/`, and other source files.
+        renderer: Renderer options (e.g. `minify_html`, `pretty_print`). Merges
+            with defaults; user keys win.
+        plugins: Dotted import paths of plugins to activate for this project.
+        clean_urls: If True, emit `about/index.html` so URLs can omit `.html`.
+
+    Example:
+        >>> from nitro import Config
+        >>> config = Config(
+        ...     site_name="My Site",
+        ...     base_url="https://mysite.com",
+        ...     renderer={"minify_html": True},
+        ... )
+    """
 
     def __init__(
         self,
@@ -17,6 +42,18 @@ class Config:
         plugins: Optional[List[str]] = None,
         clean_urls: bool = True,
     ):
+        """Initialize a Config with project settings.
+
+        Args:
+            site_name: Human-readable site name.
+            base_url: Canonical site URL (no trailing slash required).
+            build_dir: Output directory for generated files, relative to project root.
+            source_dir: Source directory containing pages and data.
+            renderer: Renderer overrides merged on top of
+                `{"pretty_print": False, "minify_html": False}`.
+            plugins: Dotted import paths of plugins to enable.
+            clean_urls: When True, write `about/index.html` instead of `about.html`.
+        """
         self.site_name = site_name
         self.base_url = base_url
         self.build_dir = Path(build_dir)

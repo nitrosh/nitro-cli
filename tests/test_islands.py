@@ -135,7 +135,7 @@ class TestIslandIdGeneration:
 
 
 # ---------------------------------------------------------------------------
-# Island.render() — callable component
+# Island.render() - callable component
 # ---------------------------------------------------------------------------
 
 
@@ -211,7 +211,7 @@ class TestIslandRenderCallable:
 
 
 # ---------------------------------------------------------------------------
-# Island.render() — component with .render() method
+# Island.render() - component with .render() method
 # ---------------------------------------------------------------------------
 
 
@@ -241,7 +241,7 @@ class TestIslandRenderWithRenderMethod:
 
 
 # ---------------------------------------------------------------------------
-# Island.render() — component with .__html__() method
+# Island.render() - component with .__html__() method
 # ---------------------------------------------------------------------------
 
 
@@ -261,7 +261,7 @@ class TestIslandRenderWithHtmlMethod:
 
 
 # ---------------------------------------------------------------------------
-# Island.render() — non-callable component
+# Island.render() - non-callable component
 # ---------------------------------------------------------------------------
 
 
@@ -277,7 +277,7 @@ class TestIslandRenderNonCallable:
 
 
 # ---------------------------------------------------------------------------
-# Island.render() — client_only=True
+# Island.render() - client_only=True
 # ---------------------------------------------------------------------------
 
 
@@ -314,7 +314,7 @@ class TestIslandRenderClientOnly:
 
 
 # ---------------------------------------------------------------------------
-# Island.render() — media strategy
+# Island.render() - media strategy
 # ---------------------------------------------------------------------------
 
 
@@ -359,7 +359,7 @@ class TestIslandRenderMediaStrategy:
 
 
 # ---------------------------------------------------------------------------
-# Island.render() — error handling
+# Island.render() - error handling
 # ---------------------------------------------------------------------------
 
 

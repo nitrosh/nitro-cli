@@ -5,23 +5,28 @@ from pathlib import Path
 
 
 class Env:
-    """Lazy-loading environment variable accessor.
+    """Lazy-loading accessor for environment variables.
 
-    Automatically loads .env file on first access if python-dotenv is installed.
+    Reads variables from `os.environ` and, if `python-dotenv` is installed,
+    auto-loads a `.env` file from the current working directory on first
+    access. Missing variables return `""` rather than raising, so pages can
+    treat optional config as falsy without guarding every lookup.
 
-    Usage:
-        from nitro import env
+    A module-level instance is exported as `nitro.env` - prefer that over
+    constructing `Env()` directly.
 
-        # Access environment variables as attributes
-        api_key = env.API_KEY
-
-        # Check if in production
-        if env.is_production():
-            # Production-only code
-            pass
+    Example:
+        >>> from nitro import env
+        >>> api_key = env.API_KEY
+        >>> if env.is_production():
+        ...     ...
     """
 
     def __init__(self):
+        """Initialize the accessor in an unloaded state.
+
+        The `.env` file is not touched until the first variable read.
+        """
         self._loaded = False
 
     def _load(self):
@@ -43,13 +48,24 @@ class Env:
         self._loaded = True
 
     def __getattr__(self, name: str) -> str:
-        """Get environment variable by attribute name.
+        """Return the environment variable named `name`.
+
+        Triggers a one-time `.env` load on first access.
 
         Args:
-            name: Environment variable name
+            name: Environment variable name. Leading underscores are reserved
+                for internal state and raise `AttributeError`.
 
         Returns:
-            Value of environment variable, or empty string if not set
+            The variable's value, or `""` if it is not set.
+
+        Raises:
+            AttributeError: If `name` starts with an underscore.
+
+        Example:
+            >>> from nitro import env
+            >>> env.DATABASE_URL
+            'postgres://...'
         """
         if name.startswith("_"):
             raise AttributeError(name)
@@ -58,31 +74,45 @@ class Env:
         return os.environ.get(name, "")
 
     def get(self, name: str, default: str = "") -> str:
-        """Get environment variable with optional default.
+        """Return an environment variable, falling back to `default`.
+
+        Use this instead of attribute access when you need a non-empty
+        fallback, or when the variable name is only known at runtime.
 
         Args:
-            name: Environment variable name
-            default: Default value if not set
+            name: Environment variable name.
+            default: Value to return when the variable is unset.
 
         Returns:
-            Value of environment variable, or default if not set
+            The variable's value, or `default` if it is not set.
+
+        Example:
+            >>> from nitro import env
+            >>> env.get("LOG_LEVEL", "info")
+            'info'
         """
         self._load()
         return os.environ.get(name, default)
 
     def is_production(self) -> bool:
-        """Check if running in production mode.
+        """Return True when running under a production build.
+
+        Detected by `NITRO_ENV=production` in the environment; the CLI sets
+        this for you during `nitro build`.
 
         Returns:
-            True if NITRO_ENV is set to 'production'
+            True if `NITRO_ENV` equals `"production"`, else False.
         """
         return os.environ.get("NITRO_ENV") == "production"
 
     def is_development(self) -> bool:
-        """Check if running in development mode.
+        """Return True when not running under a production build.
+
+        Complement of `is_production()`; treats any missing or non-production
+        `NITRO_ENV` value as development.
 
         Returns:
-            True if not in production mode
+            True unless `NITRO_ENV` equals `"production"`.
         """
         return not self.is_production()
 

@@ -20,7 +20,17 @@ from ..utils import warning, error
 
 @dataclass
 class ImageConfig:
-    """Configuration for image optimization."""
+    """Tunable settings for the image optimization pipeline.
+
+    Controls responsive breakpoints, output formats, per-format quality,
+    lazy loading, and output layout. Pass an instance to `ImageOptimizer`
+    to override the defaults.
+
+    Example:
+        >>> from nitro import ImageConfig, ImageOptimizer
+        >>> cfg = ImageConfig(sizes=[640, 1280], formats=["webp", "original"])
+        >>> optimizer = ImageOptimizer(cfg)
+    """
 
     # Responsive breakpoints (widths in pixels)
     sizes: List[int] = field(default_factory=lambda: [320, 640, 768, 1024, 1280, 1920])
@@ -56,7 +66,19 @@ class ImageConfig:
 
 @dataclass
 class OptimizedImage:
-    """Represents an optimized image with all variants."""
+    """Result of optimizing a single source image.
+
+    Holds the source metadata plus a mapping of generated variants keyed
+    by output format and width. `ImageOptimizer` produces these; consumers
+    typically call `get_srcset()` / `get_src()` to build HTML.
+
+    Attributes:
+        original_path: Path to the source image on disk.
+        original_width: Intrinsic width of the source, in pixels.
+        original_height: Intrinsic height of the source, in pixels.
+        variants: `{format: {width: output_path}}` for every generated variant.
+        hash: Short content hash embedded in output filenames for cache busting.
+    """
 
     original_path: Path
     original_width: int
@@ -65,13 +87,20 @@ class OptimizedImage:
     hash: str
 
     def get_srcset(self, format: str = "webp") -> str:
-        """Generate srcset attribute for a format.
+        """Return a `srcset` attribute value for the given format.
+
+        Emits one `path widthW` pair per generated variant, sorted by width.
 
         Args:
-            format: Image format (webp, avif, or original extension)
+            format: Output format key present in `variants` (e.g. `"webp"`,
+                `"avif"`, or the source extension like `"jpeg"`).
 
         Returns:
-            srcset string
+            A comma-separated srcset, or `""` if no variants exist for the format.
+
+        Example:
+            >>> optimized.get_srcset("webp")
+            '_images/photo-640w-ab12cd.webp 640w, _images/photo-1280w-ab12cd.webp 1280w'
         """
         if format not in self.variants:
             return ""
@@ -83,14 +112,23 @@ class OptimizedImage:
         return ", ".join(parts)
 
     def get_src(self, format: str = "webp", width: Optional[int] = None) -> str:
-        """Get single src for a format/width.
+        """Return a single `src` path for the given format and width.
+
+        Falls back to the largest generated width when `width` is omitted or
+        unavailable, and to the original source path if the format has no
+        variants at all.
 
         Args:
-            format: Image format
-            width: Specific width (or largest if None)
+            format: Output format key (e.g. `"webp"`, `"avif"`).
+            width: Specific width to select; if None or missing, the largest
+                generated width is returned.
 
         Returns:
-            Path string
+            A path string suitable for an `<img src="...">` attribute.
+
+        Example:
+            >>> optimized.get_src("webp", 640)
+            '_images/photo-640w-ab12cd.webp'
         """
         if format not in self.variants:
             return str(self.original_path)
@@ -105,13 +143,31 @@ class OptimizedImage:
 
 
 class ImageOptimizer:
-    """Handles image optimization for builds."""
+    """Build-time image optimizer that produces responsive variants.
+
+    Given a source image, generates multiple widths per configured format
+    (AVIF, WebP, and the original) and returns an `OptimizedImage` you can
+    splice into HTML via `generate_picture_element()` or `process_html()`.
+
+    Requires Pillow; AVIF output additionally requires an AVIF-capable
+    Pillow build (install with the `[images]` extra). Failures degrade
+    gracefully - missing dependencies log a warning and return `None`
+    rather than raising.
+
+    Example:
+        >>> from nitro import ImageOptimizer
+        >>> optimizer = ImageOptimizer()
+        >>> result = optimizer.optimize_image(
+        ...     Path("src/photo.jpg"), Path("build"), base_url="/"
+        ... )
+        >>> html = optimizer.generate_picture_element(result, alt="A photo")
+    """
 
     def __init__(self, config: Optional[ImageConfig] = None):
-        """Initialize the image optimizer.
+        """Initialize the optimizer, optionally with custom settings.
 
         Args:
-            config: Image optimization configuration
+            config: Pipeline settings. Defaults to `ImageConfig()` when None.
         """
         self.config = config or ImageConfig()
         self._cache: Dict[str, OptimizedImage] = {}
@@ -161,15 +217,28 @@ class ImageOptimizer:
         output_dir: Path,
         base_url: str = "",
     ) -> Optional[OptimizedImage]:
-        """Optimize a single image.
+        """Generate responsive variants for a single source image.
+
+        Writes one file per `(format, width)` combination under
+        `output_dir/<config.output_dir>/` with a content hash in the filename,
+        skipping widths larger than the source or larger than
+        `config.max_width`. Results are memoized per `(source, hash)`, so
+        repeat calls within a build are cheap.
 
         Args:
-            source_path: Path to source image
-            output_dir: Directory for optimized outputs
-            base_url: Base URL prefix for paths
+            source_path: Path to the source image.
+            output_dir: Build output directory; variants are written beneath
+                `output_dir / config.output_dir`.
+            base_url: URL prefix prepended to variant paths returned in
+                `OptimizedImage.variants`.
 
         Returns:
-            OptimizedImage with all variants, or None on failure
+            An `OptimizedImage` with every generated variant, or `None` when
+            Pillow is missing, the file is below `config.min_size`, no sizes
+            apply, or any I/O error occurs.
+
+        Example:
+            >>> optimizer.optimize_image(Path("src/hero.jpg"), Path("build"), "/")
         """
         if not self._check_pillow():
             return None
@@ -317,16 +386,24 @@ class ImageOptimizer:
         css_class: str = "",
         sizes: Optional[str] = None,
     ) -> str:
-        """Generate HTML picture element with sources.
+        """Build a responsive `<picture>` element for an optimized image.
+
+        Emits one `<source>` per non-original format in preference order, plus
+        a fallback `<img>` using the source's original format when available.
+        Intrinsic `width`/`height` attributes are set to help the browser
+        reserve layout space.
 
         Args:
-            optimized: OptimizedImage instance
-            alt: Alt text
-            css_class: CSS class for img tag
-            sizes: sizes attribute (or use default)
+            optimized: Result returned by `optimize_image()`.
+            alt: Text for the `alt` attribute.
+            css_class: Value for the fallback img's `class` attribute.
+            sizes: Explicit `sizes` attribute, else `config.default_sizes`.
 
         Returns:
-            HTML string
+            A multi-line HTML string containing `<picture>…</picture>`.
+
+        Example:
+            >>> optimizer.generate_picture_element(result, alt="Hero image")
         """
         sizes_attr = sizes or self.config.default_sizes
         lazy_attr = 'loading="lazy"' if self.config.lazy_load else ""
@@ -376,18 +453,26 @@ class ImageOptimizer:
         output_dir: Path,
         base_url: str = "",
     ) -> str:
-        """Process HTML and optimize referenced images.
+        """Rewrite `<img>` tags in HTML into optimized `<picture>` elements.
 
-        Finds img tags and replaces them with picture elements.
+        Scans the document for local `<img src="...">` tags with jpg/jpeg/png/gif
+        sources, runs `optimize_image()` on each, and swaps them for the
+        corresponding picture element. External URLs (`http(s)://`, `//`,
+        `data:`) and already-optimized `/_images/` paths are left alone, as
+        are sources that cannot be located on disk.
 
         Args:
-            html_content: HTML content
-            source_dir: Directory containing source images
-            output_dir: Build output directory
-            base_url: Base URL for image paths
+            html_content: Full HTML document or fragment to process.
+            source_dir: Directory that image paths are resolved against.
+            output_dir: Build output directory passed to `optimize_image()`.
+            base_url: URL prefix applied to generated variant paths.
 
         Returns:
-            Modified HTML with optimized images
+            The input HTML with local `<img>` tags replaced by `<picture>`
+            blocks. Returns `html_content` unchanged when Pillow is missing.
+
+        Example:
+            >>> optimizer.process_html(html, Path("src"), Path("build"), "/")
         """
         if not self._check_pillow():
             return html_content

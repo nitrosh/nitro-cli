@@ -527,7 +527,7 @@ class Renderer:
     def _invalidate_project_modules(self, project_root: Path) -> None:
         """Remove cached page modules to ensure fresh imports.
 
-        Only invalidates modules under src/pages/ — shared modules like
+        Only invalidates modules under src/pages/ - shared modules like
         components, utils, etc. are kept cached. This prevents a race
         condition where one thread invalidates shared modules while another
         thread is mid-import during parallel page generation.
