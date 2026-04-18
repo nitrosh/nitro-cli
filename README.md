@@ -2,6 +2,10 @@
 
 A static site generator that lets you build websites using Python and [nitro-ui](https://github.com/nitrosh/nitro-ui).
 
+[![PyPI](https://img.shields.io/pypi/v/nitro-cli?color=green)](https://pypi.org/project/nitro-cli/)
+[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/nitro-cli)](https://pypi.org/project/nitro-cli/)
+[![PyPI - License](https://img.shields.io/pypi/l/nitro-cli)](https://pypi.org/project/nitro-cli/)
+
 ## Installation
 
 ```bash
