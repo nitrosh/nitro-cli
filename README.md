@@ -2,19 +2,6 @@
 
 A static site generator that lets you build websites using Python and [nitro-ui](https://github.com/nitrosh/nitro-ui).
 
-## Features
-
-- **Python-Powered** - Write pages in Python with nitro-ui instead of template languages
-- **Live Reload** - Development server with automatic browser refresh
-- **Incremental Builds** - Only rebuild changed pages
-- **Dynamic Routes** - Generate pages from data with `[slug].py` pattern
-- **Draft Pages** - Mark pages as drafts to exclude from production builds
-- **Environment Variables** - Auto-load `.env` files with `from nitro import env`
-- **Image Optimization** - Responsive images with WebP/AVIF conversion
-- **Islands Architecture** - Partial hydration for interactive components
-- **Plugin System** - Extend the build lifecycle with nitro-dispatch hooks
-- **One-Click Deploy** - Netlify, Vercel, or Cloudflare Pages
-
 ## Installation
 
 ```bash
@@ -65,6 +52,19 @@ def render():
 ```
 
 Output paths mirror the file structure: `src/pages/about.py` → `build/about.html`
+
+## Features
+
+- **Python-Powered** - Write pages in Python with nitro-ui instead of template languages
+- **Live Reload** - Development server with automatic browser refresh
+- **Incremental Builds** - Only rebuild changed pages
+- **Dynamic Routes** - Generate pages from data with `[slug].py` pattern
+- **Draft Pages** - Mark pages as drafts to exclude from production builds
+- **Environment Variables** - Auto-load `.env` files with `from nitro import env`
+- **Image Optimization** - Responsive images with WebP/AVIF conversion
+- **Islands Architecture** - Partial hydration for interactive components
+- **Plugin System** - Extend the build lifecycle with nitro-dispatch hooks
+- **One-Click Deploy** - Netlify, Vercel, or Cloudflare Pages
 
 ## Dynamic Routes
 
