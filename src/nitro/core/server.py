@@ -3,7 +3,7 @@
 import asyncio
 import mimetypes
 from pathlib import Path
-from typing import Set, Optional
+from typing import Set, Optional, List
 
 import aiofiles
 from aiohttp import web, WSMsgType
@@ -55,13 +55,32 @@ class LiveReloadServer:
     async def handle_static(self, request: web.Request) -> web.Response:
         path = request.match_info["path"]
 
+        if not path:
+            return await self.serve_file("index.html")
+
+        # Trailing slash: resolve to directory index (matches Netlify/Vercel/CF Pages)
+        if path.endswith("/"):
+            return await self.serve_file(f"{path}index.html")
+
+        # Extensionless path: try <path>.html, then <path>/index.html
         if not Path(path).suffix:
-            html_path = f"{path}.html" if path else "index.html"
-            return await self.serve_file(html_path)
+            return await self.serve_file_with_fallbacks(
+                [f"{path}.html", f"{path}/index.html"]
+            )
 
         return await self.serve_file(path)
 
-    async def serve_file(self, path: str) -> web.Response:
+    async def serve_file_with_fallbacks(self, candidates: List[str]) -> web.Response:
+        """Serve the first candidate path that resolves to an existing file."""
+        for candidate in candidates:
+            response = await self.serve_file(candidate, fail_soft=True)
+            if response is not None:
+                return response
+        return web.Response(text="Not Found", status=404)
+
+    async def serve_file(
+        self, path: str, fail_soft: bool = False
+    ) -> Optional[web.Response]:
         file_path = self.build_dir / path
 
         # Resolve paths asynchronously to avoid blocking the event loop
@@ -74,20 +93,13 @@ class LiveReloadServer:
         except (ValueError, OSError):
             return web.Response(text="Forbidden", status=403)
 
-        # Use resolved_path consistently after security check
-        if not await asyncio.to_thread(resolved_path.exists):
-            if resolved_path.suffix == ".html":
-                alt_path = build_dir_resolved / path.replace(".html", "")
-                alt_resolved = await asyncio.to_thread(alt_path.resolve)
-                if not alt_resolved.is_relative_to(build_dir_resolved):
-                    warning(f"Path traversal attempt blocked: {path}")
-                    return web.Response(text="Forbidden", status=403)
-                if await asyncio.to_thread(alt_resolved.exists):
-                    resolved_path = alt_resolved
-                else:
-                    return web.Response(text="Not Found", status=404)
-            else:
-                return web.Response(text="Not Found", status=404)
+        exists = await asyncio.to_thread(resolved_path.exists)
+        is_file = exists and await asyncio.to_thread(resolved_path.is_file)
+
+        if not is_file:
+            if fail_soft:
+                return None
+            return web.Response(text="Not Found", status=404)
 
         try:
             async with aiofiles.open(resolved_path, "rb") as f:

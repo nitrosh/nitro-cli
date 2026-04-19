@@ -110,6 +110,13 @@ async def serve_async(
 
                 hmr_update(relative_path)
 
+                # Drop cached src/ modules on any .py change so edits to
+                # shared components/utils are picked up without restarting.
+                if path.suffix == ".py":
+                    generator.renderer.invalidate_all_src_modules(
+                        generator.project_root
+                    )
+
                 should_notify = False
 
                 # Run blocking generator operations in thread pool

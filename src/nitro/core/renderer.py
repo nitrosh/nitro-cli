@@ -545,6 +545,28 @@ class Renderer:
         for name in modules_to_remove:
             del sys.modules[name]
 
+    def invalidate_all_src_modules(self, project_root: Path) -> None:
+        """Drop every cached module whose file lives under src/.
+
+        Used by dev mode so that edits to shared modules (components, utils,
+        data loaders) are picked up without restarting the server. Build mode
+        should keep using _invalidate_project_modules, which is page-only and
+        safe for parallel generation.
+        """
+        src_dir = str(project_root / "src")
+        modules_to_remove = []
+
+        with _import_lock:
+            for name, module in sys.modules.items():
+                if module is None:
+                    continue
+                module_file = getattr(module, "__file__", None)
+                if module_file and module_file.startswith(src_dir):
+                    modules_to_remove.append(name)
+
+            for name in modules_to_remove:
+                del sys.modules[name]
+
     def get_output_path(
         self, page_path: Path, source_dir: Path, build_dir: Path
     ) -> Path:

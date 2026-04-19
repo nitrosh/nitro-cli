@@ -143,6 +143,19 @@ class Generator:
                 static_pages, components_dir, data_dir
             )
 
+            # Rebuild any "cached" page whose output file is missing from build/
+            # (e.g. user ran `rm -rf build/` between runs).
+            pages_to_build_set = set(pages_to_build)
+            for page in static_pages:
+                if page in pages_to_build_set:
+                    continue
+                output_path = self.renderer.get_output_path(
+                    page, self.source_dir, self.build_dir
+                )
+                if not output_path.exists():
+                    pages_to_build.append(page)
+                    pages_to_build_set.add(page)
+
             if not pages_to_build and not dynamic_pages:
                 success("All pages are up to date (nothing to build)")
                 return True
@@ -603,6 +616,12 @@ class Generator:
                 relative = item.relative_to(src)
                 dest_file = dest / relative
                 dest_file.parent.mkdir(parents=True, exist_ok=True)
+                # Explicitly unlink destination first to guarantee overwrite.
+                # Guards against stale build outputs (e.g. committed build/
+                # with older mtimes than src) that a user might expect a
+                # build to refresh.
+                if dest_file.exists() or dest_file.is_symlink():
+                    dest_file.unlink()
                 shutil.copy2(item, dest_file)
                 files_copied += 1
 
