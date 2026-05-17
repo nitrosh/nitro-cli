@@ -126,14 +126,11 @@ class Bundler:
             rel_path = html_file.relative_to(self.build_dir)
             rel_path_str = str(rel_path).replace("\\", "/")
 
-            # Get metadata for this page
             meta = page_metadata.get(rel_path_str, {})
 
-            # Check if page should be excluded from sitemap
             if meta.get("sitemap") is False:
                 continue
 
-            # Skip draft pages
             if meta.get("draft"):
                 continue
 
@@ -147,7 +144,6 @@ class Bundler:
 
             full_url = f"{base_url.rstrip('/')}/{url_path}"
 
-            # Determine lastmod from metadata or file mtime
             if meta.get("lastmod"):
                 lastmod = meta["lastmod"]
             elif meta.get("published"):
@@ -156,13 +152,11 @@ class Bundler:
                 mtime = datetime.fromtimestamp(html_file.stat().st_mtime)
                 lastmod = mtime.strftime("%Y-%m-%d")
 
-            # Determine priority from metadata or defaults
             if meta.get("sitemap_priority"):
                 priority = str(meta["sitemap_priority"])
             else:
                 priority = "1.0" if url_path == "" else "0.8"
 
-            # Determine changefreq from metadata or default
             changefreq = meta.get("sitemap_changefreq", "weekly")
 
             urls.append(
@@ -209,6 +203,8 @@ Sitemap: {sitemap_url}
         except (IOError, OSError) as e:
             error(f"Failed to write robots.txt: {e}")
 
+    FINGERPRINT_LEN = 12
+
     def create_asset_manifest(self, output_path: Path) -> None:
         """Create asset manifest with file hashes."""
         manifest = {}
@@ -217,7 +213,7 @@ Sitemap: {sitemap_url}
             if file_path.is_file():
                 hasher = hashlib.sha256()
                 hasher.update(file_path.read_bytes())
-                file_hash = hasher.hexdigest()[:8]
+                file_hash = hasher.hexdigest()[: self.FINGERPRINT_LEN]
                 rel_path = str(file_path.relative_to(self.build_dir))
 
                 manifest[rel_path] = {
@@ -233,8 +229,7 @@ Sitemap: {sitemap_url}
         except (IOError, OSError) as e:
             error(f"Failed to write asset manifest: {e}")
 
-    # Matches stems that already end with an 8-char hex fingerprint (e.g. "nav.36da3320")
-    _FINGERPRINT_RE = re.compile(r"\.[0-9a-f]{8}$")
+    _FINGERPRINT_RE = re.compile(r"\.[0-9a-f]{12}$")
 
     def fingerprint_assets(self) -> Dict[str, str]:
         """Add content hashes to CSS and JS filenames for cache busting."""
@@ -248,13 +243,12 @@ Sitemap: {sitemap_url}
         path_mapping = {}
 
         for asset_path in asset_files:
-            # Skip files already fingerprinted from a previous build
             if self._FINGERPRINT_RE.search(asset_path.stem):
                 continue
             content = asset_path.read_bytes()
             hasher = hashlib.sha256()
             hasher.update(content)
-            content_hash = hasher.hexdigest()[:8]
+            content_hash = hasher.hexdigest()[: self.FINGERPRINT_LEN]
 
             stem = asset_path.stem
             suffix = asset_path.suffix
@@ -276,13 +270,10 @@ Sitemap: {sitemap_url}
 
                 for old_path, new_path in path_mapping.items():
                     old_filename = Path(old_path).name
-                    new_filename = Path(new_path).name
 
-                    # Use regex to match href/src with optional quotes and optional leading slash
-                    # This handles quoted, unquoted, and minified HTML attributes
+                    # Match href/src attributes with optional quotes and an
+                    # optional leading slash so minified output is covered too.
                     for path_variant in [old_path, old_filename]:
-                        # Pattern matches: href="path", href='path', href=/path, href=path
-                        # Captures the attribute name (href or src) and replaces with quoted new path
                         pattern = (
                             r'((?:href|src)=)["\']?(/?'
                             + re.escape(path_variant)

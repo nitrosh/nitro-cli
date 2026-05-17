@@ -267,22 +267,17 @@ class TestFingerprintAssets:
         with tempfile.TemporaryDirectory() as tmpdir:
             build_dir = Path(tmpdir)
 
-            # Simulate state after a previous build: both the fresh source
-            # file and the old fingerprinted copy exist in build/
             js_content = "console.log('nav');"
             (build_dir / "nav.js").write_text(js_content)
-            (build_dir / "nav.36da3320.js").write_text(js_content)
+            (build_dir / "nav.36da33205a1c.js").write_text(js_content)
 
             bundler = Bundler(build_dir)
             mapping = bundler.fingerprint_assets()
 
-            # Only the fresh file should be fingerprinted
             assert "nav.js" in mapping
-            assert "nav.36da3320.js" not in mapping
+            assert "nav.36da33205a1c.js" not in mapping
 
-            # No double-hashed files should exist
             for f in build_dir.iterdir():
-                # Count dots in stem - a stacked hash would have 2+ dots
                 assert f.stem.count(".") <= 1, f"Stacked fingerprint: {f.name}"
 
     def test_incremental_build_no_hash_stacking(self):

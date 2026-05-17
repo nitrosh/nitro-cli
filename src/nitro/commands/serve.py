@@ -99,6 +99,13 @@ async def serve_async(
         loop = asyncio.get_running_loop()
         regeneration_lock = asyncio.Lock()
 
+        def _is_within(child: Path, parent: Path) -> bool:
+            try:
+                child.resolve().relative_to(parent.resolve())
+                return True
+            except ValueError:
+                return False
+
         async def on_file_change(path: Path) -> None:
             nonlocal generator
 
@@ -110,40 +117,42 @@ async def serve_async(
 
                 hmr_update(relative_path)
 
-                # Drop cached src/ modules on any .py change so edits to
-                # shared components/utils are picked up without restarting.
                 if path.suffix == ".py":
                     generator.renderer.invalidate_all_src_modules(
                         generator.project_root
                     )
 
+                pages_dir = generator.source_dir / "pages"
+                components_dir = generator.source_dir / "components"
+                styles_dir = generator.source_dir / "styles"
+                public_dir = generator.source_dir / "public"
+
                 should_notify = False
 
-                # Run blocking generator operations in thread pool
-                if "pages" in str(path):
-                    if path.suffix == ".py" and path.name != "__init__.py":
-                        hmr_update("page", "rebuilding...")
-                        if await asyncio.to_thread(
-                            generator.regenerate_page, path, verbose=False
-                        ):
-                            should_notify = True
-                elif "components" in str(path):
-                    hmr_update("site", "rebuilding...")
-                    if await asyncio.to_thread(
-                        generator.generate, verbose=False, quiet=True
-                    ):
-                        should_notify = True
-                elif "styles" in str(path) or "public" in str(path):
-                    hmr_update("assets", "rebuilding...")
-                    await asyncio.to_thread(generator._copy_assets, verbose=False)
-                    should_notify = True
-                elif path.name == "nitro.config.py":
+                if path.name == "nitro.config.py":
                     hmr_update("config", "rebuilding...")
                     generator = Generator()
                     if await asyncio.to_thread(
                         generator.generate, verbose=False, quiet=True
                     ):
                         should_notify = True
+                elif _is_within(path, pages_dir):
+                    if path.suffix == ".py" and path.name != "__init__.py":
+                        hmr_update("page", "rebuilding...")
+                        if await asyncio.to_thread(
+                            generator.regenerate_page, path, verbose=False
+                        ):
+                            should_notify = True
+                elif _is_within(path, components_dir):
+                    hmr_update("site", "rebuilding...")
+                    if await asyncio.to_thread(
+                        generator.generate, verbose=False, quiet=True
+                    ):
+                        should_notify = True
+                elif _is_within(path, styles_dir) or _is_within(path, public_dir):
+                    hmr_update("assets", "rebuilding...")
+                    await asyncio.to_thread(generator._copy_assets, verbose=False)
+                    should_notify = True
                 else:
                     hmr_update("site", "rebuilding...")
                     if await asyncio.to_thread(

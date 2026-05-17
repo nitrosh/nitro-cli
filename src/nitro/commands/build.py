@@ -7,7 +7,6 @@ from datetime import datetime
 import click
 
 from ..core.bundler import Bundler
-from ..core.config import load_config
 from ..core.generator import Generator
 from ..core.images import ImageOptimizer, ImageConfig
 from ..core.islands import IslandProcessor, IslandConfig
@@ -90,7 +89,7 @@ def build(
 
         verbose(f"Output directory: {generator.build_dir}")
 
-        config = load_config(generator.project_root / "nitro.config.py")
+        config = generator.config
         if minify:
             config.renderer["minify_html"] = True
             generator.renderer.minify_html = True
@@ -190,13 +189,11 @@ def build(
             update("Generating metadata...")
             html_files = list(generator.build_dir.rglob("*.html"))
             sitemap_path = generator.build_dir / "sitemap.xml"
-            # Pass page metadata for enhanced sitemap generation
-            page_metadata = getattr(generator, "page_metadata", None)
             bundler.generate_sitemap(
                 base_url=config.base_url,
                 html_files=html_files,
                 output_path=sitemap_path,
-                page_metadata=page_metadata,
+                page_metadata=generator.page_metadata,
                 clean_urls=config.clean_urls,
             )
             verbose(f"Created sitemap.xml with {len(html_files)} URLs")

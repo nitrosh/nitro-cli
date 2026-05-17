@@ -57,25 +57,28 @@ class NitroFileHandler(FileSystemEventHandler):
         self.on_change(path)
 
     def _should_ignore(self, path: Path) -> bool:
-        ignore_patterns = [
+        ignored_dirs = {
             "__pycache__",
-            ".pyc",
-            ".pyo",
             ".git",
             ".nitro",
-            "build/",
+            "build",
             ".idea",
             ".vscode",
-            ".DS_Store",
-        ]
+        }
+        ignored_suffixes = {".pyc", ".pyo", ".swp"}
+        ignored_names = {".DS_Store"}
 
-        path_str = str(path)
-        for pattern in ignore_patterns:
-            if pattern in path_str:
-                return True
+        parts = path.parts
+        if any(part in ignored_dirs for part in parts):
+            return True
+
+        if path.suffix in ignored_suffixes:
+            return True
 
         name = path.name
-        if name.endswith("~") or name.startswith(".#") or name.endswith(".swp"):
+        if name in ignored_names:
+            return True
+        if name.endswith("~") or name.startswith(".#"):
             return True
 
         return False

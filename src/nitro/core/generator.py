@@ -41,6 +41,9 @@ class Generator:
         self.plugin_loader = self._load_plugins()
         self.use_cache = use_cache
         self.cache = BuildCache(self.project_root) if use_cache else None
+        self.production = False
+        self.page_metadata: dict = {}
+        self._metadata_lock = threading.Lock()
 
     def _load_config(self) -> Config:
         """Load project configuration.
@@ -91,22 +94,17 @@ class Generator:
             True if successful, False otherwise
         """
         self.production = production
-        self.page_metadata = {}  # Store page metadata for sitemap
-        self._metadata_lock = threading.Lock()  # Thread-safe metadata access
+        self.page_metadata = {}
         info(f"Generating site from {self.source_dir}")
         info(f"Output directory: {self.build_dir}")
 
-        # Check if config changed (forces full rebuild)
         config_path = self.project_root / "nitro.config.py"
-        config_changed = False
         if self.cache and config_path.exists():
-            config_changed = self.cache.is_config_changed(config_path)
-            if config_changed:
+            if self.cache.is_config_changed(config_path):
                 warning("Config changed, forcing full rebuild")
                 force = True
             self.cache.update_config_hash(config_path)
 
-        # Trigger pre-generate hook
         self.plugin_loader.trigger(
             "nitro.pre_generate",
             {
@@ -116,17 +114,14 @@ class Generator:
             },
         )
 
-        # Ensure build directory exists
         self.build_dir.mkdir(parents=True, exist_ok=True)
 
-        # Find all page files
         all_pages = self._find_pages()
 
         if not all_pages:
             error("No pages found in src/pages/")
             return False
 
-        # Separate static and dynamic pages
         static_pages = []
         dynamic_pages = []
         for page in all_pages:
@@ -135,7 +130,6 @@ class Generator:
             else:
                 static_pages.append(page)
 
-        # Determine which static pages need to be rebuilt
         if self.cache and not force:
             components_dir = self.source_dir / "components"
             data_dir = self.source_dir / "data"
@@ -143,8 +137,8 @@ class Generator:
                 static_pages, components_dir, data_dir
             )
 
-            # Rebuild any "cached" page whose output file is missing from build/
-            # (e.g. user ran `rm -rf build/` between runs).
+            # Cache may report a page as unchanged but build/ could have been
+            # wiped between runs; treat missing outputs as stale.
             pages_to_build_set = set(pages_to_build)
             for page in static_pages:
                 if page in pages_to_build_set:
@@ -174,27 +168,21 @@ class Generator:
         if dynamic_pages:
             info(f"Found {len(dynamic_pages)} dynamic route(s)")
 
-        # Generate pages
         success_count = 0
         failed_pages = []
 
-        # Use parallel generation for multiple pages
         use_parallel = parallel and len(pages_to_build) > 1
         max_workers = min(os.cpu_count() or 4, len(pages_to_build), 8)
 
-        # Generate pages - with or without progress display
         if quiet:
-            # Quiet mode: no progress bar (for background thread execution)
             success_count, failed_pages = self._generate_pages_quiet(
                 pages_to_build, use_parallel, max_workers, verbose
             )
         else:
-            # Normal mode: show progress bar
             success_count, failed_pages = self._generate_pages_with_progress(
                 pages_to_build, use_parallel, max_workers, verbose
             )
 
-        # Show results for static pages
         if pages_to_build:
             if failed_pages:
                 success(
@@ -205,7 +193,6 @@ class Generator:
             else:
                 success(f"Generated {success_count} static page(s)")
 
-        # Generate dynamic pages
         dynamic_count = 0
         if dynamic_pages:
             console.print("\n[dim]─── Generating Dynamic Routes [/dim]")
@@ -219,7 +206,6 @@ class Generator:
 
                 for output_name, html in results:
                     if html:
-                        # Determine output directory based on page location
                         pages_dir = self.source_dir / "pages"
                         rel_dir = dynamic_page.parent.relative_to(pages_dir)
                         if str(rel_dir) == ".":
@@ -239,11 +225,9 @@ class Generator:
             if dynamic_count > 0:
                 success(f"Generated {dynamic_count} page(s) from dynamic routes")
 
-        # Save the cache
         if self.cache:
             self.cache.save()
 
-        # Copy assets
         self._copy_assets(verbose)
 
         success("Site generation complete!")
@@ -400,24 +384,19 @@ class Generator:
         if page_obj is None:
             return False
 
-        # Check for draft status in production mode
-        is_draft = (
-            getattr(page_obj, "draft", False) if hasattr(page_obj, "draft") else False
-        )
-        if getattr(self, "production", False) and is_draft:
+        is_draft = getattr(page_obj, "draft", False)
+        if self.production and is_draft:
             if verbose:
                 console.print(
                     f"    [dim]Skipping draft: {page_path.relative_to(self.project_root)}[/]"
                 )
-            return True  # Return True to not count as failure
+            return True
 
-        # Get HTML content
         if hasattr(page_obj, "content"):
             html = self.renderer._render_page_object(page_obj)
-            html = self.renderer._post_process(html)
         else:
             html = self.renderer._render_element(page_obj)
-            html = self.renderer._post_process(html)
+        html = self.renderer._post_process(html)
 
         if html:
             hook_result = self.plugin_loader.trigger(
@@ -443,16 +422,12 @@ class Generator:
             output_path.parent.mkdir(parents=True, exist_ok=True)
             output_path.write_text(html)
 
-            # Store metadata for sitemap
-            if hasattr(self, "page_metadata"):
-                rel_path = str(output_path.relative_to(self.build_dir))
-                meta = (
-                    getattr(page_obj, "meta", {}) if hasattr(page_obj, "meta") else {}
-                )
-                self.page_metadata[rel_path] = {
-                    "draft": is_draft,
-                    **meta,
-                }
+            rel_path = str(output_path.relative_to(self.build_dir))
+            meta = getattr(page_obj, "meta", {})
+            self.page_metadata[rel_path] = {
+                "draft": is_draft,
+                **meta,
+            }
 
             if verbose:
                 console.print(f"    → {output_path.relative_to(self.project_root)}")
@@ -491,7 +466,6 @@ class Generator:
             True if successful, False otherwise
         """
         try:
-            # Render with page object return to check draft status
             page_obj = self.renderer.render_page(
                 page_path, self.project_root, return_page=True
             )
@@ -499,25 +473,17 @@ class Generator:
             if page_obj is None:
                 return False
 
-            # Check for draft status in production mode
-            is_draft = (
-                getattr(page_obj, "draft", False)
-                if hasattr(page_obj, "draft")
-                else False
-            )
-            if getattr(self, "production", False) and is_draft:
-                return True  # Skip drafts in production but count as success
+            is_draft = getattr(page_obj, "draft", False)
+            if self.production and is_draft:
+                return True
 
-            # Get HTML content
             if hasattr(page_obj, "content"):
                 html = self.renderer._render_page_object(page_obj)
-                html = self.renderer._post_process(html)
             else:
                 html = self.renderer._render_element(page_obj)
-                html = self.renderer._post_process(html)
+            html = self.renderer._post_process(html)
 
             if html:
-                # Trigger post-generate hook to allow HTML modification
                 hook_result = self.plugin_loader.trigger(
                     "nitro.post_generate",
                     {
@@ -527,7 +493,6 @@ class Generator:
                     },
                 )
 
-                # Use modified output if returned
                 if (
                     hook_result
                     and isinstance(hook_result, dict)
@@ -539,25 +504,16 @@ class Generator:
                     page_path, self.source_dir, self.build_dir
                 )
 
-                # Ensure parent directory exists (thread-safe with exist_ok)
                 output_path.parent.mkdir(parents=True, exist_ok=True)
-
-                # Write HTML file
                 output_path.write_text(html)
 
-                # Store metadata for sitemap (thread-safe)
-                if hasattr(self, "page_metadata"):
-                    rel_path = str(output_path.relative_to(self.build_dir))
-                    meta = (
-                        getattr(page_obj, "meta", {})
-                        if hasattr(page_obj, "meta")
-                        else {}
-                    )
-                    with self._metadata_lock:
-                        self.page_metadata[rel_path] = {
-                            "draft": is_draft,
-                            **meta,
-                        }
+                rel_path = str(output_path.relative_to(self.build_dir))
+                meta = getattr(page_obj, "meta", {})
+                with self._metadata_lock:
+                    self.page_metadata[rel_path] = {
+                        "draft": is_draft,
+                        **meta,
+                    }
 
                 if verbose:
                     console.print(f"  → {output_path.relative_to(self.project_root)}")
@@ -577,19 +533,15 @@ class Generator:
         """
         info("Copying static assets...")
 
-        # Copy styles
         styles_src = self.source_dir / "styles"
         if styles_src.exists():
             styles_dest = self.build_dir / "assets" / "styles"
             self._copy_directory(styles_src, styles_dest, "styles", verbose)
 
-        # Copy public files (src/public/ -> build/)
         public_src = self.source_dir / "public"
         if public_src.exists():
-            # Copy public files to root of build directory
             self._copy_directory(public_src, self.build_dir, "public", verbose)
 
-        # Copy static files (src/static/ -> build/)
         static_src = self.source_dir / "static"
         if static_src.exists():
             self._copy_directory(static_src, self.build_dir, "static", verbose)
@@ -616,10 +568,8 @@ class Generator:
                 relative = item.relative_to(src)
                 dest_file = dest / relative
                 dest_file.parent.mkdir(parents=True, exist_ok=True)
-                # Explicitly unlink destination first to guarantee overwrite.
-                # Guards against stale build outputs (e.g. committed build/
-                # with older mtimes than src) that a user might expect a
-                # build to refresh.
+                # Unlink first so a committed build/ with older mtimes than
+                # src/ still gets overwritten on the next build.
                 if dest_file.exists() or dest_file.is_symlink():
                     dest_file.unlink()
                 shutil.copy2(item, dest_file)
