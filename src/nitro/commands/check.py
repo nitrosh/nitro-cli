@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import List, Tuple
 
 from ..core.page import get_project_root
-from ..core.config import load_config
+from ..core.config import Config, load_config
 from ..core.renderer import Renderer
 from ..utils import console, success, error, info, warning
 
@@ -52,10 +52,9 @@ def check(verbose, links):
         error("Not in a Nitro project directory")
         sys.exit(1)
 
-    # Load config
     config_path = project_root / "nitro.config.py"
-    config = load_config(config_path) if config_path.exists() else None
-    source_dir = project_root / (config.source_dir if config else "src")
+    config = load_config(config_path) if config_path.exists() else Config()
+    source_dir = project_root / config.source_dir
     pages_dir = source_dir / "pages"
 
     if not pages_dir.exists():

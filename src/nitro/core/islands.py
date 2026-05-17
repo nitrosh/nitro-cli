@@ -128,7 +128,8 @@ class Island:
                     inner_html = str(self.component)
             except Exception as e:
                 warning(f"Failed to render island '{self.name}': {e}")
-                inner_html = f"<!-- Error rendering island: {e} -->"
+                safe_msg = str(e).replace("--", "- -")
+                inner_html = f"<!-- Error rendering island: {safe_msg} -->"
 
         # Build hydration attributes
         attrs = [

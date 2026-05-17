@@ -1,6 +1,7 @@
 """Renderer for generating HTML from nitro-ui pages."""
 
 import threading
+from contextlib import contextmanager
 from typing import Any, Optional, List
 from pathlib import Path
 import importlib.util
@@ -9,8 +10,38 @@ import sys
 from ..core.page import Page
 from ..utils import error, warning, error_panel
 
-# Lock for thread-safe sys.path and sys.modules manipulation
-_import_lock = threading.Lock()
+_import_lock = threading.RLock()
+
+
+@contextmanager
+def _project_import_context(project_root: Path, invalidate_pages):
+    """Serialize all access to sys.path and sys.modules during page import.
+
+    Python's import machinery touches global state. Holding the lock for the
+    full import (path setup, module invalidation, exec_module, sys.modules
+    insert/remove, path teardown) is what makes parallel page rendering
+    correct; releasing it earlier opens windows where another thread can
+    yank a path or shared module out from under an in-flight import.
+    """
+    paths_to_remove = []
+    with _import_lock:
+        if str(project_root) not in sys.path:
+            sys.path.insert(0, str(project_root))
+            paths_to_remove.append(str(project_root))
+
+        src_dir = project_root / "src"
+        if str(src_dir) not in sys.path:
+            sys.path.insert(0, str(src_dir))
+            paths_to_remove.append(str(src_dir))
+
+        invalidate_pages(project_root)
+
+        try:
+            yield
+        finally:
+            for path in paths_to_remove:
+                if path in sys.path:
+                    sys.path.remove(path)
 
 
 class Renderer:
@@ -35,60 +66,39 @@ class Renderer:
         Returns:
             List of parameter dictionaries from get_paths()
         """
-        paths_to_remove = []
-
         try:
-            with _import_lock:
-                if str(project_root) not in sys.path:
-                    sys.path.insert(0, str(project_root))
-                    paths_to_remove.append(str(project_root))
+            with _project_import_context(project_root, self._invalidate_project_modules):
+                module_name = f"dynamic_paths_{page_path.stem}_{id(self)}_{threading.get_ident()}"
+                spec = importlib.util.spec_from_file_location(module_name, page_path)
 
-                src_dir = project_root / "src"
-                if str(src_dir) not in sys.path:
-                    sys.path.insert(0, str(src_dir))
-                    paths_to_remove.append(str(src_dir))
-
-                self._invalidate_project_modules(project_root)
-
-            module_name = f"dynamic_paths_{page_path.stem}_{id(self)}"
-            spec = importlib.util.spec_from_file_location(module_name, page_path)
-
-            if not spec or not spec.loader:
-                return []
-
-            module = importlib.util.module_from_spec(spec)
-            sys.modules[spec.name] = module
-
-            try:
-                spec.loader.exec_module(module)
-
-                if not hasattr(module, "get_paths"):
+                if not spec or not spec.loader:
                     return []
 
-                paths = module.get_paths()
-                # Normalize paths to list of dicts
-                result = []
-                for path_params in paths:
-                    if isinstance(path_params, dict):
-                        result.append(path_params)
-                    else:
-                        # Single value - use the param name from filename
-                        param_name = page_path.stem[1:-1]  # Extract from [slug].py
-                        result.append({param_name: path_params})
-                return result
+                module = importlib.util.module_from_spec(spec)
+                sys.modules[spec.name] = module
 
-            finally:
-                if spec.name in sys.modules:
-                    del sys.modules[spec.name]
+                try:
+                    spec.loader.exec_module(module)
+
+                    if not hasattr(module, "get_paths"):
+                        return []
+
+                    paths = module.get_paths()
+                    result = []
+                    for path_params in paths:
+                        if isinstance(path_params, dict):
+                            result.append(path_params)
+                        else:
+                            param_name = page_path.stem[1:-1]
+                            result.append({param_name: path_params})
+                    return result
+
+                finally:
+                    if spec.name in sys.modules:
+                        del sys.modules[spec.name]
 
         except Exception:
             return []
-
-        finally:
-            with _import_lock:
-                for path in paths_to_remove:
-                    if path in sys.path:
-                        sys.path.remove(path)
 
     def render_dynamic_page_single(
         self, page_path: Path, project_root: Path, params: dict
@@ -103,60 +113,44 @@ class Renderer:
         Returns:
             Rendered HTML or None on error
         """
-        paths_to_remove = []
-
+        html = None
         try:
-            with _import_lock:
-                if str(project_root) not in sys.path:
-                    sys.path.insert(0, str(project_root))
-                    paths_to_remove.append(str(project_root))
+            with _project_import_context(project_root, self._invalidate_project_modules):
+                module_name = (
+                    f"dynamic_single_{page_path.stem}_{id(self)}_{threading.get_ident()}"
+                )
+                spec = importlib.util.spec_from_file_location(module_name, page_path)
 
-                src_dir = project_root / "src"
-                if str(src_dir) not in sys.path:
-                    sys.path.insert(0, str(src_dir))
-                    paths_to_remove.append(str(src_dir))
-
-                self._invalidate_project_modules(project_root)
-
-            module_name = f"dynamic_single_{page_path.stem}_{id(self)}"
-            spec = importlib.util.spec_from_file_location(module_name, page_path)
-
-            if not spec or not spec.loader:
-                return None
-
-            module = importlib.util.module_from_spec(spec)
-            sys.modules[spec.name] = module
-
-            try:
-                spec.loader.exec_module(module)
-
-                if not hasattr(module, "render"):
+                if not spec or not spec.loader:
                     return None
 
-                page = module.render(**params)
+                module = importlib.util.module_from_spec(spec)
+                sys.modules[spec.name] = module
 
-                if isinstance(page, Page):
-                    html = self._render_page_object(page)
-                else:
-                    html = self._render_element(page)
+                try:
+                    spec.loader.exec_module(module)
 
-                if html:
-                    html = self._post_process(html)
+                    if not hasattr(module, "render"):
+                        return None
 
-                return html
+                    page = module.render(**params)
 
-            finally:
-                if spec.name in sys.modules:
-                    del sys.modules[spec.name]
+                    if isinstance(page, Page):
+                        html = self._render_page_object(page)
+                    else:
+                        html = self._render_element(page)
+
+                finally:
+                    if spec.name in sys.modules:
+                        del sys.modules[spec.name]
 
         except Exception:
             return None
 
-        finally:
-            with _import_lock:
-                for path in paths_to_remove:
-                    if path in sys.path:
-                        sys.path.remove(path)
+        if html:
+            html = self._post_process(html)
+
+        return html
 
     def render_dynamic_page(
         self,
@@ -165,81 +159,65 @@ class Renderer:
     ) -> List[tuple]:
         """Render a dynamic page for all its paths."""
         results = []
-        paths_to_remove = []
 
         try:
-            with _import_lock:
-                if str(project_root) not in sys.path:
-                    sys.path.insert(0, str(project_root))
-                    paths_to_remove.append(str(project_root))
+            with _project_import_context(project_root, self._invalidate_project_modules):
+                module_name = (
+                    f"dynamic_page_{page_path.stem}_{id(self)}_{threading.get_ident()}"
+                )
+                spec = importlib.util.spec_from_file_location(module_name, page_path)
 
-                src_dir = project_root / "src"
-                if str(src_dir) not in sys.path:
-                    sys.path.insert(0, str(src_dir))
-                    paths_to_remove.append(str(src_dir))
-
-                self._invalidate_project_modules(project_root)
-
-            module_name = f"dynamic_page_{page_path.stem}_{id(self)}"
-            spec = importlib.util.spec_from_file_location(module_name, page_path)
-
-            if not spec or not spec.loader:
-                error(f"Failed to load dynamic page: {page_path}")
-                return results
-
-            module = importlib.util.module_from_spec(spec)
-            sys.modules[spec.name] = module
-
-            try:
-                spec.loader.exec_module(module)
-
-                if not hasattr(module, "get_paths"):
-                    error(f"Dynamic page {page_path} missing get_paths() function")
+                if not spec or not spec.loader:
+                    error(f"Failed to load dynamic page: {page_path}")
                     return results
 
-                if not hasattr(module, "render"):
-                    error(f"Dynamic page {page_path} missing render() function")
-                    return results
+                module = importlib.util.module_from_spec(spec)
+                sys.modules[spec.name] = module
 
-                paths = module.get_paths()
+                try:
+                    spec.loader.exec_module(module)
 
-                for path_params in paths:
-                    try:
-                        if isinstance(path_params, dict):
-                            page = module.render(**path_params)
-                        else:
-                            page = module.render(path_params)
+                    if not hasattr(module, "get_paths"):
+                        error(f"Dynamic page {page_path} missing get_paths() function")
+                        return results
 
-                        if isinstance(page, Page):
-                            html = self._render_page_object(page)
-                        else:
-                            html = self._render_element(page)
+                    if not hasattr(module, "render"):
+                        error(f"Dynamic page {page_path} missing render() function")
+                        return results
 
-                        if html:
-                            html = self._post_process(html)
+                    paths = module.get_paths()
 
-                        output_name = self._get_dynamic_output_name(
-                            page_path, path_params
-                        )
-                        results.append((output_name, html))
+                    for path_params in paths:
+                        try:
+                            if isinstance(path_params, dict):
+                                page = module.render(**path_params)
+                            else:
+                                page = module.render(path_params)
 
-                    except Exception as e:
-                        error(
-                            f"Error rendering {page_path} with params {path_params}: {e}"
-                        )
+                            if isinstance(page, Page):
+                                html = self._render_page_object(page)
+                            else:
+                                html = self._render_element(page)
 
-            finally:
-                if spec.name in sys.modules:
-                    del sys.modules[spec.name]
+                            if html:
+                                html = self._post_process(html)
+
+                            output_name = self._get_dynamic_output_name(
+                                page_path, path_params
+                            )
+                            results.append((output_name, html))
+
+                        except Exception as e:
+                            error(
+                                f"Error rendering {page_path} with params {path_params}: {e}"
+                            )
+
+                finally:
+                    if spec.name in sys.modules:
+                        del sys.modules[spec.name]
 
         except Exception as e:
             error(f"Error processing dynamic page {page_path}: {e}")
-
-        finally:
-            with _import_lock:
-                for path in paths_to_remove:
-                    if path in sys.path:
-                        sys.path.remove(path)
 
         return results
 
@@ -247,7 +225,7 @@ class Renderer:
         """Get the output filename for a dynamic page."""
         import re
 
-        stem = page_path.stem  # e.g., "[slug]"
+        stem = page_path.stem
 
         if isinstance(params, dict):
             output_name = stem
@@ -271,57 +249,43 @@ class Renderer:
         Returns:
             HTML string, Page object (if return_page=True), or None on error
         """
-        paths_to_remove = []
-
         try:
-            with _import_lock:
-                if str(project_root) not in sys.path:
-                    sys.path.insert(0, str(project_root))
-                    paths_to_remove.append(str(project_root))
+            with _project_import_context(project_root, self._invalidate_project_modules):
+                module_name = f"page_{page_path.stem}_{id(self)}_{threading.get_ident()}"
+                spec = importlib.util.spec_from_file_location(module_name, page_path)
 
-                src_dir = project_root / "src"
-                if str(src_dir) not in sys.path:
-                    sys.path.insert(0, str(src_dir))
-                    paths_to_remove.append(str(src_dir))
-
-                self._invalidate_project_modules(project_root)
-
-            module_name = f"page_{page_path.stem}_{id(self)}"
-            spec = importlib.util.spec_from_file_location(module_name, page_path)
-
-            if not spec or not spec.loader:
-                error(f"Failed to load page: {page_path}")
-                return None
-
-            module = importlib.util.module_from_spec(spec)
-            sys.modules[spec.name] = module
-
-            try:
-                spec.loader.exec_module(module)
-
-                if not hasattr(module, "render"):
-                    error(f"Page {page_path} missing render() function")
+                if not spec or not spec.loader:
+                    error(f"Failed to load page: {page_path}")
                     return None
 
-                page = module.render()
+                module = importlib.util.module_from_spec(spec)
+                sys.modules[spec.name] = module
 
-                # Return page object if requested
-                if return_page:
-                    return page
+                try:
+                    spec.loader.exec_module(module)
 
-                if isinstance(page, Page):
-                    html = self._render_page_object(page)
-                else:
-                    html = self._render_element(page)
+                    if not hasattr(module, "render"):
+                        error(f"Page {page_path} missing render() function")
+                        return None
 
-                if html:
-                    html = self._post_process(html)
+                    page = module.render()
 
-                return html
+                    if return_page:
+                        return page
 
-            finally:
-                if spec.name in sys.modules:
-                    del sys.modules[spec.name]
+                    if isinstance(page, Page):
+                        html = self._render_page_object(page)
+                    else:
+                        html = self._render_element(page)
+
+                    if html:
+                        html = self._post_process(html)
+
+                    return html
+
+                finally:
+                    if spec.name in sys.modules:
+                        del sys.modules[spec.name]
 
         except SyntaxError as e:
             error_panel(
@@ -407,12 +371,6 @@ class Renderer:
             else:
                 error(f"Error rendering {page_path}: {e}")
             return None
-
-        finally:
-            with _import_lock:
-                for path in paths_to_remove:
-                    if path in sys.path:
-                        sys.path.remove(path)
 
     def _suggest_name_fix(self, error_msg: str) -> Optional[str]:
         """Suggest fixes for common name errors."""

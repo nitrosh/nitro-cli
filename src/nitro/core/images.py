@@ -405,46 +405,46 @@ class ImageOptimizer:
         Example:
             >>> optimizer.generate_picture_element(result, alt="Hero image")
         """
+        from nitro_ui import Picture, Source, Image
+
         sizes_attr = sizes or self.config.default_sizes
-        lazy_attr = 'loading="lazy"' if self.config.lazy_load else ""
-        class_attr = f'class="{css_class}"' if css_class else ""
 
         sources = []
-
-        # Add sources in format preference order
         for format in self.config.formats:
             if format == "original":
                 continue
-
             if format in optimized.variants:
-                srcset = optimized.get_srcset(format)
-                mime = f"image/{format}"
                 sources.append(
-                    f'  <source type="{mime}" srcset="{srcset}" sizes="{sizes_attr}">'
+                    Source(
+                        type=f"image/{format}",
+                        srcset=optimized.get_srcset(format),
+                        sizes=sizes_attr,
+                    )
                 )
 
-        # Fallback img tag (use original format or first available)
         original_format = optimized.original_path.suffix.lower().lstrip(".")
         if original_format in optimized.variants:
             fallback_srcset = optimized.get_srcset(original_format)
             fallback_src = optimized.get_src(original_format)
         else:
-            # Use first available format
             first_format = list(optimized.variants.keys())[0]
             fallback_srcset = optimized.get_srcset(first_format)
             fallback_src = optimized.get_src(first_format)
 
-        img_tag = (
-            f'  <img src="{fallback_src}" '
-            f'srcset="{fallback_srcset}" '
-            f'sizes="{sizes_attr}" '
-            f'alt="{alt}" '
-            f"{class_attr} {lazy_attr} "
-            f'width="{optimized.original_width}" '
-            f'height="{optimized.original_height}">'
-        )
+        img_attrs = {
+            "src": fallback_src,
+            "srcset": fallback_srcset,
+            "sizes": sizes_attr,
+            "alt": alt,
+            "width": optimized.original_width,
+            "height": optimized.original_height,
+        }
+        if css_class:
+            img_attrs["cls"] = css_class
+        if self.config.lazy_load:
+            img_attrs["loading"] = "lazy"
 
-        return f"<picture>\n{''.join(f'{s}' + chr(10) for s in sources)}{img_tag}\n</picture>"
+        return Picture(*sources, Image(**img_attrs)).render()
 
     def process_html(
         self,
